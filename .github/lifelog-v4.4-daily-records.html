@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ライフログアプリ v4 - ジャーナル機能付き</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+        
+        .tab-nav {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            overflow-x: auto;
+        }
+        
+        .tab-button {
+            padding: 12px 15px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.95em;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: bold;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .input-section {
+            background: #f8f9ff;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .voice-button {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.2em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-bottom: 15px;
+        }
+        
+        .voice-button.listening {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .quick-button {
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .text-input, .number-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .textarea-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .input-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .category-select {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            background: white;
+        }
+        
+        .mood-selector {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .mood-button {
+            padding: 15px 25px;
+            font-size: 1.8em;
+            border: 3px solid transparent;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .mood-button.active {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: scale(1.1);
+        }
+        
+        .add-button {
+            width: 100%;
+            padding: 15px;
+            font-size: 1em;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        .status {
+            text-align: center;
+            color: #666;
+            margin-top: 10px;
+            min-height: 20px;
+            font-weight: bold;
+        }
+        
+        .logs-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .log-item, .journal-item {
+            background: #f8f9ff;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        
+        .journal-item {
+            border-left-width: 8px;
+        }
+        
+        .journal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .journal-date {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .journal-mood {
+            font-size: 1.5em;
+        }
+        
+        .journal-content {
+            line-height: 1.8;
+            color: #555;
+            white-space: pre-wrap;
+            margin-bottom: 10px;
+        }
+        
+        .log-text {
+            font-size: 1.1em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .log-meta {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .log-amount {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .amount-income { color: #4CAF50; }
+        .amount-expense { color: #f44336; }
+        
+        .log-category {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .category-work { background: #e3f2fd; color: #1976d2; }
+        .category-study { background: #f3e5f5; color: #7b1fa2; }
+        .category-exercise { background: #e8f5e9; color: #388e3c; }
+        .category-meal { background: #fff3e0; color: #f57c00; }
+        .category-leisure { background: #fce4ec; color: #c2185b; }
+        .category-other { background: #f5f5f5; color: #616161; }
+        .category-food { background: #ffebee; color: #c62828; }
+        .category-transport { background: #e0f2f1; color: #00695c; }
+        .category-shopping { background: #fce4ec; color: #ad1457; }
+        .category-entertainment { background: #f3e5f5; color: #6a1b9a; }
+        
+        .log-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .edit-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .delete-button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .chart-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 15px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 1.1em;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-value.positive { color: #4CAF50; }
+        .stat-value.negative { color: #f44336; }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .weight-history {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .weight-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+        
+        .weight-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .weight-change {
+            font-size: 0.85em;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin-left: 10px;
+        }
+        
+        .weight-up { background: #ffebee; color: #c62828; }
+        .weight-down { background: #e8f5e9; color: #2e7d32; }
+        
+        .period-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .period-button {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .period-button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .report-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .report-summary h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .summary-item {
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .summary-item-title {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .summary-item-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .ai-advice-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+            margin-top: 30px;
+        }
+        
+        .ai-advice-button {
+            width: 100%;
+            padding: 15px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .ai-advice-button.loading {
+            background: #e0e0e0;
+            cursor: wait;
+        }
+        
+        .advice-content {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
+            border-radius: 10px;
+            line-height: 1.8;
+            display: none;
+        }
+        
+        .advice-content.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        .advice-content h4 {
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .advice-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .advice-content li {
+            margin-bottom: 8px;
+        }
+        
+        .journal-summary-list {
+            margin-top: 15px;
+        }
+        
+        .journal-summary-item {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .journal-summary-item-date {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .journal-summary-item-preview {
+            line-height: 1.6;
+            color: #555;
+        }
+        
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        .modal-button.primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .modal-button.secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+        
+        .time-input {
+            padding: 12px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 ライフログアプリ v4</h1>
+        
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="switchTab('activity')">⏱️ 行動</button>
+            <button class="tab-button" onclick="switchTab('money')">💰 お金</button>
+            <button class="tab-button" onclick="switchTab('weight')">⚖️ 体重</button>
+            <button class="tab-button" onclick="switchTab('journal')">📔 ジャーナル</button>
+            <button class="tab-button" onclick="switchTab('report')">📊 レポート</button>
+        </div>
+
+        <!-- 行動タブ -->
+        <div id="activityTab" class="tab-content active">
+            <div class="input-section">
+                <button id="activityVoiceButton" class="voice-button">🎤 音声入力で記録</button>
+                <div class="quick-buttons">
+                    <button class="quick-button" onclick="quickAddActivity('仕事', 'work')">💼 仕事</button>
+                    <button class="quick-button" onclick="quickAddActivity('勉強', 'study')">📚 勉強</button>
+                    <button class="quick-button" onclick="quickAddActivity('運動', 'exercise')">🏃 運動</button>
+                    <button class="quick-button" onclick="quickAddActivity('食事', 'meal')">🍽️ 食事</button>
+                </div>
+                <input type="text" id="activityTextInput" class="text-input" placeholder="活動内容...">
+                <select id="activityCategorySelect" class="category-select">
+                    <option value="work">💼 仕事</option>
+                    <option value="study">📚 勉強</option>
+                    <option value="exercise">🏃 運動</option>
+                    <option value="meal">🍽️ 食事</option>
+                    <option value="leisure">☕ 娯楽</option>
+                    <option value="other">📌 その他</option>
+                </select>
+                <button id="activityAddButton" class="add-button">➕ 記録</button>
+                <div id="activityStatus" class="status"></div>
+            </div>
+            <div class="logs-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 class="section-title" style="margin-bottom: 0;">今日の行動</h2>
+                    <button onclick="openCategoryManager('activity')" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9em;">⚙️ カテゴリ管理</button>
+                </div>
+                <div id="activityLogsList"></div>
+            </div>
+        </div>
+
+        <!-- お金タブ -->
+        <div id="moneyTab" class="tab-content">
+            <div class="input-section">
+                <button id="moneyVoiceButton" class="voice-button">🎤 音声入力で記録</button>
+                <div class="quick-buttons">
+                    <button class="quick-button" onclick="quickAddMoney('収入', 'income')">💰 収入</button>
+                    <button class="quick-button" onclick="quickAddMoney('支出', 'expense')">💸 支出</button>
+                    <button class="quick-button" onclick="quickAddMoney('食費', 'food')">🍽️ 食費</button>
+                    <button class="quick-button" onclick="quickAddMoney('交通費', 'transport')">🚃 交通費</button>
+                </div>
+                <input type="text" id="moneyTextInput" class="text-input" placeholder="内容...">
+                <div class="input-row">
+                    <input type="number" id="moneyAmountInput" class="number-input" placeholder="金額">
+                    <select id="moneyTypeSelect" class="category-select">
+                        <option value="income">💰 収入</option>
+                        <option value="expense" selected>💸 支出</option>
+                    </select>
+                </div>
+                <select id="moneyCategorySelect" class="category-select">
+                    <option value="food">🍽️ 食費</option>
+                    <option value="transport">🚃 交通費</option>
+                    <option value="shopping">🛍️ 買い物</option>
+                    <option value="entertainment">🎮 娯楽</option>
+                    <option value="other">📌 その他</option>
+                </select>
+                <button id="moneyAddButton" class="add-button">➕ 記録</button>
+                <div id="moneyStatus" class="status"></div>
+            </div>
+            <div class="logs-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 class="section-title" style="margin-bottom: 0;">今日のお金</h2>
+                    <button onclick="openCategoryManager('money')" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.9em;">⚙️ カテゴリ管理</button>
+                </div>
+                <div id="moneyLogsList"></div>
+            </div>
+        </div>
+
+        <!-- 体重タブ -->
+        <div id="weightTab" class="tab-content">
+            <div class="input-section">
+                <button id="weightVoiceButton" class="voice-button">🎤 音声入力で記録</button>
+                <input type="number" id="weightInput" class="number-input" placeholder="体重（kg）" step="0.1">
+                <button id="weightAddButton" class="add-button">➕ 記録</button>
+                <div id="weightStatus" class="status"></div>
+            </div>
+            <div class="logs-section">
+                <h2 class="section-title">体重記録</h2>
+                <div class="weight-history" id="weightHistory"></div>
+            </div>
+        </div>
+
+        <!-- ジャーナルタブ（新規） -->
+        <div id="journalTab" class="tab-content">
+            <div class="input-section">
+                <button id="journalVoiceButton" class="voice-button">🎤 音声入力で今日の振り返り</button>
+                
+                <div class="mood-selector">
+                    <button class="mood-button" data-mood="good" onclick="selectMood('good')">😊</button>
+                    <button class="mood-button active" data-mood="normal" onclick="selectMood('normal')">😐</button>
+                    <button class="mood-button" data-mood="bad" onclick="selectMood('bad')">😢</button>
+                </div>
+                
+                <textarea id="journalTextInput" class="textarea-input" placeholder="今日はどんな1日でしたか？&#10;&#10;例：&#10;- 朝からジムに行って気持ちよく汗を流した&#10;- 午後は集中して仕事ができた&#10;- 夜は友達と楽しく食事&#10;- 明日は早起きして新しいプロジェクトに取り組もう"></textarea>
+                
+                <button id="journalAddButton" class="add-button">📝 ジャーナルを保存</button>
+                <div id="journalStatus" class="status"></div>
+            </div>
+            
+            <div class="logs-section">
+                <h2 class="section-title">過去のジャーナル</h2>
+                <div id="journalList"></div>
+            </div>
+        </div>
+
+        <!-- レポートタブ -->
+        <div id="reportTab" class="tab-content">
+            <div class="period-selector">
+                <button class="period-button" onclick="setPeriod('today')">今日</button>
+                <button class="period-button active" onclick="setPeriod('week')">週間</button>
+                <button class="period-button" onclick="setPeriod('month')">月間</button>
+            </div>
+
+            <div id="reportContent">
+                <div class="report-summary">
+                    <h3>⏱️ 行動サマリー</h3>
+                    <div class="summary-grid" id="activitySummary"></div>
+                    <div class="chart-container" style="height: 250px; margin-top: 20px;">
+                        <canvas id="reportActivityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="report-summary">
+                    <h3>💰 お金サマリー</h3>
+                    <div class="summary-grid" id="moneySummary"></div>
+                    <div class="chart-container" style="height: 250px; margin-top: 20px;">
+                        <canvas id="reportMoneyChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="report-summary">
+                    <h3>⚖️ 体重サマリー</h3>
+                    <div class="summary-grid" id="weightSummary"></div>
+                    <div class="chart-container" style="height: 250px; margin-top: 20px;">
+                        <canvas id="reportWeightChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="report-summary">
+                    <h3>📔 ジャーナルまとめ</h3>
+                    <div class="journal-summary-list" id="journalSummaryList"></div>
+                </div>
+
+                <div class="ai-advice-section">
+                    <button class="ai-advice-button" onclick="generateAdvice()">
+                        🤖 AIで総合的な振り返り分析を取得
+                    </button>
+                    <div class="advice-content" id="adviceContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- カテゴリ管理モーダル -->
+    <div id="categoryManagerModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header" id="categoryManagerTitle">⚙️ カテゴリ管理</div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 1.1em; margin-bottom: 10px; color: #667eea;">新しいカテゴリを追加</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="newCategoryKey" class="text-input" placeholder="ID（例：hobby）" style="flex: 1;">
+                    <input type="text" id="newCategoryName" class="text-input" placeholder="名前（例：趣味）" style="flex: 1;">
+                    <button onclick="addCustomCategory()" class="modal-button primary" style="white-space: nowrap;">➕ 追加</button>
+                </div>
+                <small style="color: #999; display: block; margin-top: 5px;">* IDは英数字のみ、名前は日本語可</small>
+            </div>
+            
+            <div>
+                <h3 style="font-size: 1.1em; margin-bottom: 10px; color: #667eea;">現在のカテゴリ</h3>
+                <div id="categoryList" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeCategoryManager()">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編集モーダル（行動） -->
+    <div id="editActivityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">✏️ 行動を編集</div>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block;">内容</label>
+            <input type="text" id="editActivityText" class="text-input" placeholder="行動内容">
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">カテゴリ</label>
+            <select id="editActivityCategory" class="select-input">
+                <option value="work">💼 仕事</option>
+                <option value="study">📚 勉強</option>
+                <option value="exercise">🏋️ 運動</option>
+                <option value="meal">🍽️ 食事</option>
+                <option value="leisure">🎮 娯楽</option>
+                <option value="other">📌 その他</option>
+            </select>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">開始時刻</label>
+            <input type="datetime-local" id="editActivityStartTime" class="time-input">
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">終了時刻</label>
+            <input type="datetime-local" id="editActivityEndTime" class="time-input">
+            <small style="color: #999; display: block; margin-top: 5px;">継続中の場合は空欄にしてください</small>
+            
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeEditActivityModal()">キャンセル</button>
+                <button class="modal-button primary" onclick="saveEditActivity()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編集モーダル（お金） -->
+    <div id="editMoneyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">✏️ お金を編集</div>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block;">内容</label>
+            <input type="text" id="editMoneyText" class="text-input" placeholder="内容">
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">金額</label>
+            <input type="number" id="editMoneyAmount" class="text-input" placeholder="金額">
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">種類</label>
+            <select id="editMoneyType" class="select-input">
+                <option value="income">収入</option>
+                <option value="expense">支出</option>
+            </select>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">カテゴリ</label>
+            <select id="editMoneyCategory" class="select-input">
+                <option value="food">🍔 食費</option>
+                <option value="transport">🚌 交通費</option>
+                <option value="shopping">🛍️ 買い物</option>
+                <option value="entertainment">🎥 娯楽</option>
+                <option value="other">💵 その他</option>
+            </select>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">日時</label>
+            <input type="datetime-local" id="editMoneyTime" class="time-input">
+            
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeEditMoneyModal()">キャンセル</button>
+                <button class="modal-button primary" onclick="saveEditMoney()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編集モーダル（体重） -->
+    <div id="editWeightModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">✏️ 体重を編集</div>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block;">体重 (kg)</label>
+            <input type="number" step="0.1" id="editWeightValue" class="text-input" placeholder="体重">
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block; margin-top: 15px;">日時</label>
+            <input type="datetime-local" id="editWeightTime" class="time-input">
+            
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeEditWeightModal()">キャンセル</button>
+                <button class="modal-button primary" onclick="saveEditWeight()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 編集モーダル（ジャーナル） -->
+    <div id="editJournalModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">✏️ ジャーナルを編集</div>
+            
+            <div class="mood-selector">
+                <button class="mood-button" data-mood="good" onclick="selectEditMood('good')">😊</button>
+                <button class="mood-button" data-mood="normal" onclick="selectEditMood('normal')">😐</button>
+                <button class="mood-button" data-mood="bad" onclick="selectEditMood('bad')">😢</button>
+            </div>
+            
+            <textarea id="editJournalText" class="textarea-input" placeholder="ジャーナル内容"></textarea>
+            
+            <label style="font-size: 0.9em; color: #666; margin-bottom: 5px; display: block;">日時</label>
+            <input type="datetime-local" id="editJournalTime" class="time-input">
+            
+            <div class="modal-buttons">
+                <button class="modal-button secondary" onclick="closeEditJournalModal()">キャンセル</button>
+                <button class="modal-button primary" onclick="saveEditJournal()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // データ
+        let activities = JSON.parse(localStorage.getItem('activities')) || [];
+        let moneyRecords = JSON.parse(localStorage.getItem('moneyRecords')) || [];
+        let weightRecords = JSON.parse(localStorage.getItem('weightRecords')) || [];
+        let journals = JSON.parse(localStorage.getItem('journals')) || [];
+        let currentTab = 'activity';
+        let currentPeriod = 'week';
+        let editingId = null;
+        let selectedMood = 'normal';
+        let editSelectedMood = 'normal';
+
+        // カスタムカテゴリ（localStorageから読み込み）
+        let customActivityCategories = JSON.parse(localStorage.getItem('customActivityCategories')) || {};
+        let customMoneyCategories = JSON.parse(localStorage.getItem('customMoneyCategories')) || {};
+
+        const defaultActivityCategories = {
+            work: '仕事', study: '勉強', exercise: '運動',
+            meal: '食事', leisure: '娯楽', other: 'その他'
+        };
+
+        const defaultMoneyCategories = {
+            food: '食費', transport: '交通費', shopping: '買い物',
+            entertainment: '娯楽', other: 'その他'
+        };
+
+        // カテゴリをマージ（デフォルト + カスタム）
+        const activityCategoryNames = { ...defaultActivityCategories, ...customActivityCategories };
+        const moneyCategoryNames = { ...defaultMoneyCategories, ...customMoneyCategories };
+
+        const activityKeywords = {
+            work: ['仕事', 'ミーティング', '会議', 'メール'],
+            study: ['勉強', '学習', '読書'],
+            exercise: ['運動', 'ジョギング', 'ジム'],
+            meal: ['食事', 'ランチ', '朝食', '夕食']
+        };
+
+        const moneyKeywords = {
+            food: ['食事', 'ランチ', 'カフェ', 'コンビニ'],
+            transport: ['電車', 'バス', 'タクシー'],
+            shopping: ['買い物', '服', 'Amazon'],
+            entertainment: ['映画', 'ゲーム', '本']
+        };
+
+        const moodEmojis = {
+            good: '😊',
+            normal: '😐',
+            bad: '😢'
+        };
+
+        // タブ切替
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            const tabIndex = { activity: 0, money: 1, weight: 2, journal: 3, report: 4 };
+            document.querySelectorAll('.tab-button')[tabIndex[tab]].classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+            
+            if (tab === 'activity') renderActivityLogs();
+            else if (tab === 'money') renderMoneyLogs();
+            else if (tab === 'weight') renderWeightHistory();
+            else if (tab === 'journal') renderJournalList();
+            else if (tab === 'report') renderReport();
+        }
+
+        // 期間設定
+        function setPeriod(period) {
+            currentPeriod = period;
+            document.querySelectorAll('.period-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderReport();
+        }
+
+        function getDateRange() {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            if (currentPeriod === 'today') {
+                return { start: today, end: now };
+            } else if (currentPeriod === 'week') {
+                const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return { start: weekAgo, end: now };
+            } else {
+                const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                return { start: monthAgo, end: now };
+            }
+        }
+
+        function filterByDateRange(records) {
+            const { start, end } = getDateRange();
+            return records.filter(r => {
+                const date = new Date(r.timestamp);
+                return date >= start && date <= end;
+            });
+        }
+
+        // 音声認識（各ボタンごとに独立したインスタンスを作成）
+        const recognitionInstances = {};
+        
+        function setupVoiceRecognition(buttonId, onResult) {
+            const button = document.getElementById(buttonId);
+            
+            if (!('webkitSpeechRecognition' in window)) {
+                button.textContent = '⚠️ 非対応';
+                button.disabled = true;
+                return;
+            }
+            
+            // 各ボタンごとに独立した認識インスタンスを作成
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'ja-JP';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            
+            // インスタンスを保存
+            recognitionInstances[buttonId] = {
+                recognition: recognition,
+                isListening: false
+            };
+            
+            button.addEventListener('click', () => {
+                const instance = recognitionInstances[buttonId];
+                
+                // トグル機能: 録音中なら停止、停止中なら開始
+                if (instance.isListening) {
+                    recognition.stop();
+                    button.classList.remove('listening');
+                    instance.isListening = false;
+                } else {
+                    try {
+                        recognition.start();
+                        button.classList.add('listening');
+                        instance.isListening = true;
+                    } catch (e) {
+                        console.error('Recognition start error:', e);
+                        button.classList.remove('listening');
+                        instance.isListening = false;
+                    }
+                }
+            });
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                onResult(transcript);
+                button.classList.remove('listening');
+                recognitionInstances[buttonId].isListening = false;
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Recognition error:', event.error);
+                button.classList.remove('listening');
+                recognitionInstances[buttonId].isListening = false;
+            };
+            
+            recognition.onend = () => {
+                button.classList.remove('listening');
+                recognitionInstances[buttonId].isListening = false;
+            };
+        }
+
+        function detectCategory(text, keywords) {
+            text = text.toLowerCase();
+            for (const [category, words] of Object.entries(keywords)) {
+                if (words.some(word => text.includes(word))) return category;
+            }
+            return 'other';
+        }
+
+        function extractNumber(text) {
+            const match = text.match(/[\d\.]+/);
+            return match ? parseFloat(match[0]) : null;
+        }
+
+        // 時間抽出関数（音声入力から時間を認識）
+        function extractTimeFromText(text) {
+            const result = { startTime: null, endTime: null };
+            
+            // 「朝7時」「午前7時」「7時」などのパターン
+            const timePattern = /(朝|午前|午後)?(\d{1,2})時(半|30分?)?/g;
+            const matches = [...text.matchAll(timePattern)];
+            
+            if (matches.length === 0) return result;
+            
+            // 最初の時間を開始時間として設定
+            const first = matches[0];
+            let hour1 = parseInt(first[2]);
+            const minute1 = first[3] ? 30 : 0;
+            
+            // 午後の場合は12時間追加（ただし12時は除く）
+            if (first[1] === '午後' && hour1 !== 12) hour1 += 12;
+            if (first[1] === '午前' && hour1 === 12) hour1 = 0;
+            
+            const today = new Date();
+            const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour1, minute1);
+            result.startTime = startDate.getTime();
+            
+            // 2つ目の時間があれば終了時間として設定
+            if (matches.length >= 2) {
+                const second = matches[1];
+                let hour2 = parseInt(second[2]);
+                const minute2 = second[3] ? 30 : 0;
+                
+                if (second[1] === '午後' && hour2 !== 12) hour2 += 12;
+                if (second[1] === '午前' && hour2 === 12) hour2 = 0;
+                
+                const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour2, minute2);
+                result.endTime = endDate.getTime();
+            }
+            
+            return result;
+        }
+
+        // 行動ログ
+        function quickAddActivity(name, category) {
+            document.getElementById('activityTextInput').value = name;
+            document.getElementById('activityCategorySelect').value = category;
+        }
+
+        setupVoiceRecognition('activityVoiceButton', (transcript) => {
+            document.getElementById('activityTextInput').value = transcript;
+            const category = detectCategory(transcript, activityKeywords);
+            document.getElementById('activityCategorySelect').value = category;
+            
+            // 時間情報を抽出
+            const timeInfo = extractTimeFromText(transcript);
+            if (timeInfo.startTime) {
+                // 開始時間が認識された場合、次の追加時にその時間を使用
+                window.pendingActivityTime = timeInfo;
+            }
+        });
+
+        document.getElementById('activityAddButton').addEventListener('click', () => {
+            const text = document.getElementById('activityTextInput').value.trim();
+            const category = document.getElementById('activityCategorySelect').value;
+            
+            // 音声入力から時間が抽出されている場合はそれを使用
+            let startTime = Date.now();
+            let endTime = null;
+            
+            if (window.pendingActivityTime && window.pendingActivityTime.startTime) {
+                startTime = window.pendingActivityTime.startTime;
+                endTime = window.pendingActivityTime.endTime;
+                window.pendingActivityTime = null; // 使用後はクリア
+            } else {
+                // 通常の動作：前の活動を終了
+                if (activities.length > 0 && !activities[activities.length - 1].endTime) {
+                    activities[activities.length - 1].endTime = Date.now();
+                }
+            }
+            
+            const newActivity = {
+                id: Date.now(),
+                text: text || activityCategoryNames[category],
+                category: category,
+                timestamp: new Date(startTime).toISOString(),
+                startTime: startTime
+            };
+            
+            if (endTime) {
+                newActivity.endTime = endTime;
+            }
+            
+            activities.push(newActivity);
+            
+            localStorage.setItem('activities', JSON.stringify(activities));
+            document.getElementById('activityTextInput').value = '';
+            document.getElementById('activityStatus').textContent = '✓ 記録しました';
+            setTimeout(() => document.getElementById('activityStatus').textContent = '', 2000);
+            renderActivityLogs();
+        });
+
+        function renderActivityLogs() {
+            const list = document.getElementById('activityLogsList');
+            const today = new Date().toDateString();
+            const logs = activities.filter(a => new Date(a.timestamp).toDateString() === today).reverse();
+            
+            if (logs.length === 0) {
+                list.innerHTML = '<div class="empty-state">記録なし</div>';
+                return;
+            }
+            
+            list.innerHTML = logs.map((a, i) => {
+                const time = new Date(a.timestamp).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                let duration = '';
+                if (a.endTime) {
+                    duration = ` (${Math.round((a.endTime - a.startTime) / 60000)}分)`;
+                } else if (i === 0) {
+                    duration = ` (${Math.round((Date.now() - a.startTime) / 60000)}分 継続中)`;
+                }
+                return `
+                    <div class="log-item">
+                        <div class="log-text">${a.text}</div>
+                        <div class="log-meta">
+                            ${time}${duration}
+                            <span class="log-category category-${a.category}">${activityCategoryNames[a.category]}</span>
+                        </div>
+                        <div class="log-actions">
+                            <button class="edit-button" onclick="editActivity(${a.id})">✏️ 編集</button>
+                            <button class="delete-button" onclick="deleteActivity(${a.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteActivity(id) {
+            if (confirm('削除しますか？')) {
+                activities = activities.filter(a => a.id !== id);
+                localStorage.setItem('activities', JSON.stringify(activities));
+                renderActivityLogs();
+            }
+        }
+
+        function editActivity(id) {
+            const activity = activities.find(a => a.id === id);
+            if (!activity) return;
+            
+            editingId = id;
+            document.getElementById('editActivityText').value = activity.text;
+            document.getElementById('editActivityCategory').value = activity.category;
+            document.getElementById('editActivityStartTime').value = new Date(activity.startTime).toISOString().slice(0, 16);
+            
+            if (activity.endTime) {
+                document.getElementById('editActivityEndTime').value = new Date(activity.endTime).toISOString().slice(0, 16);
+            } else {
+                document.getElementById('editActivityEndTime').value = '';
+            }
+            
+            document.getElementById('editActivityModal').classList.add('show');
+        }
+
+        function closeEditActivityModal() {
+            document.getElementById('editActivityModal').classList.remove('show');
+            editingId = null;
+        }
+
+        function saveEditActivity() {
+            const activity = activities.find(a => a.id === editingId);
+            if (!activity) return;
+            
+            const text = document.getElementById('editActivityText').value.trim();
+            const category = document.getElementById('editActivityCategory').value;
+            const startTimeStr = document.getElementById('editActivityStartTime').value;
+            const endTimeStr = document.getElementById('editActivityEndTime').value;
+            
+            if (!text || !startTimeStr) {
+                alert('内容と開始時刻を入力してください');
+                return;
+            }
+            
+            const startTime = new Date(startTimeStr).getTime();
+            const endTime = endTimeStr ? new Date(endTimeStr).getTime() : null;
+            
+            if (endTime && endTime <= startTime) {
+                alert('終了時刻は開始時刻より後にしてください');
+                return;
+            }
+            
+            activity.text = text;
+            activity.category = category;
+            activity.startTime = startTime;
+            activity.timestamp = new Date(startTime).toISOString();
+            activity.endTime = endTime;
+            
+            // 時間順にソート
+            activities.sort((a, b) => a.startTime - b.startTime);
+            
+            localStorage.setItem('activities', JSON.stringify(activities));
+            closeEditActivityModal();
+            renderActivityLogs();
+        }
+
+        // お金
+        function quickAddMoney(name, category) {
+            document.getElementById('moneyTextInput').value = name;
+            document.getElementById('moneyCategorySelect').value = category;
+        }
+
+        setupVoiceRecognition('moneyVoiceButton', (transcript) => {
+            document.getElementById('moneyTextInput').value = transcript;
+            const amount = extractNumber(transcript);
+            if (amount) document.getElementById('moneyAmountInput').value = amount;
+        });
+
+        document.getElementById('moneyAddButton').addEventListener('click', () => {
+            const text = document.getElementById('moneyTextInput').value.trim();
+            const amount = parseFloat(document.getElementById('moneyAmountInput').value);
+            const type = document.getElementById('moneyTypeSelect').value;
+            const category = document.getElementById('moneyCategorySelect').value;
+            
+            if (!amount) {
+                document.getElementById('moneyStatus').textContent = '❌ 金額を入力';
+                return;
+            }
+            
+            moneyRecords.push({
+                id: Date.now(),
+                text: text || category,
+                amount: amount,
+                type: type,
+                category: category,
+                timestamp: new Date().toISOString()
+            });
+            
+            localStorage.setItem('moneyRecords', JSON.stringify(moneyRecords));
+            document.getElementById('moneyTextInput').value = '';
+            document.getElementById('moneyAmountInput').value = '';
+            document.getElementById('moneyStatus').textContent = '✓ 記録しました';
+            setTimeout(() => document.getElementById('moneyStatus').textContent = '', 2000);
+            renderMoneyLogs();
+        });
+
+        function renderMoneyLogs() {
+            const list = document.getElementById('moneyLogsList');
+            const today = new Date().toDateString();
+            const logs = moneyRecords.filter(r => new Date(r.timestamp).toDateString() === today).reverse();
+            
+            if (logs.length === 0) {
+                list.innerHTML = '<div class="empty-state">記録なし</div>';
+                return;
+            }
+            
+            list.innerHTML = logs.map(r => {
+                const time = new Date(r.timestamp).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                const sign = r.type === 'income' ? '+' : '-';
+                const amountClass = r.type === 'income' ? 'amount-income' : 'amount-expense';
+                return `
+                    <div class="log-item">
+                        <div class="log-text">
+                            ${r.text}
+                            <span class="log-amount ${amountClass}">${sign}${r.amount.toLocaleString()}円</span>
+                        </div>
+                        <div class="log-meta">${time}</div>
+                        <div class="log-actions">
+                            <button class="edit-button" onclick="editMoney(${r.id})">✏️ 編集</button>
+                            <button class="delete-button" onclick="deleteMoney(${r.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteMoney(id) {
+            if (confirm('削除しますか？')) {
+                moneyRecords = moneyRecords.filter(r => r.id !== id);
+                localStorage.setItem('moneyRecords', JSON.stringify(moneyRecords));
+                renderMoneyLogs();
+            }
+        }
+
+        function editMoney(id) {
+            const money = moneyRecords.find(m => m.id === id);
+            if (!money) return;
+            
+            editingId = id;
+            document.getElementById('editMoneyText').value = money.text;
+            document.getElementById('editMoneyAmount').value = money.amount;
+            document.getElementById('editMoneyType').value = money.type;
+            document.getElementById('editMoneyCategory').value = money.category;
+            document.getElementById('editMoneyTime').value = new Date(money.timestamp).toISOString().slice(0, 16);
+            
+            document.getElementById('editMoneyModal').classList.add('show');
+        }
+
+        function closeEditMoneyModal() {
+            document.getElementById('editMoneyModal').classList.remove('show');
+            editingId = null;
+        }
+
+        function saveEditMoney() {
+            const money = moneyRecords.find(m => m.id === editingId);
+            if (!money) return;
+            
+            const text = document.getElementById('editMoneyText').value.trim();
+            const amount = parseFloat(document.getElementById('editMoneyAmount').value);
+            const type = document.getElementById('editMoneyType').value;
+            const category = document.getElementById('editMoneyCategory').value;
+            const timeStr = document.getElementById('editMoneyTime').value;
+            
+            if (!amount || !timeStr) {
+                alert('金額と日時を入力してください');
+                return;
+            }
+            
+            money.text = text || category;
+            money.amount = amount;
+            money.type = type;
+            money.category = category;
+            money.timestamp = new Date(timeStr).toISOString();
+            
+            // 時間順にソート
+            moneyRecords.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            localStorage.setItem('moneyRecords', JSON.stringify(moneyRecords));
+            closeEditMoneyModal();
+            renderMoneyLogs();
+        }
+
+        // 体重
+        setupVoiceRecognition('weightVoiceButton', (transcript) => {
+            const weight = extractNumber(transcript);
+            if (weight) document.getElementById('weightInput').value = weight;
+        });
+
+        document.getElementById('weightAddButton').addEventListener('click', () => {
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            if (!weight) {
+                document.getElementById('weightStatus').textContent = '❌ 体重を入力';
+                return;
+            }
+            
+            weightRecords.push({
+                id: Date.now(),
+                weight: weight,
+                timestamp: new Date().toISOString()
+            });
+            
+            localStorage.setItem('weightRecords', JSON.stringify(weightRecords));
+            document.getElementById('weightInput').value = '';
+            document.getElementById('weightStatus').textContent = '✓ 記録しました';
+            setTimeout(() => document.getElementById('weightStatus').textContent = '', 2000);
+            renderWeightHistory();
+        });
+
+        function renderWeightHistory() {
+            const history = document.getElementById('weightHistory');
+            const records = [...weightRecords].reverse().slice(0, 10);
+            
+            if (records.length === 0) {
+                history.innerHTML = '<div class="empty-state">記録なし</div>';
+                return;
+            }
+            
+            history.innerHTML = records.map((r, i) => {
+                const date = new Date(r.timestamp).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' });
+                let changeHtml = '';
+                if (i < records.length - 1) {
+                    const diff = r.weight - records[i + 1].weight;
+                    if (diff !== 0) {
+                        const cls = diff < 0 ? 'weight-down' : 'weight-up';
+                        changeHtml = `<span class="weight-change ${cls}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}kg</span>`;
+                    }
+                }
+                return `
+                    <div class="weight-item">
+                        <span>${date}</span>
+                        <div>
+                            <span class="weight-value">${r.weight}kg</span>
+                            ${changeHtml}
+                        </div>
+                        <div>
+                            <button class="edit-button" onclick="editWeight(${r.id})" style="margin-right: 5px;">✏️</button>
+                            <button class="delete-button" onclick="deleteWeight(${r.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteWeight(id) {
+            if (confirm('削除しますか？')) {
+                weightRecords = weightRecords.filter(r => r.id !== id);
+                localStorage.setItem('weightRecords', JSON.stringify(weightRecords));
+                renderWeightHistory();
+            }
+        }
+
+        function editWeight(id) {
+            const weight = weightRecords.find(w => w.id === id);
+            if (!weight) return;
+            
+            editingId = id;
+            document.getElementById('editWeightValue').value = weight.weight;
+            document.getElementById('editWeightTime').value = new Date(weight.timestamp).toISOString().slice(0, 16);
+            
+            document.getElementById('editWeightModal').classList.add('show');
+        }
+
+        function closeEditWeightModal() {
+            document.getElementById('editWeightModal').classList.remove('show');
+            editingId = null;
+        }
+
+        function saveEditWeight() {
+            const weight = weightRecords.find(w => w.id === editingId);
+            if (!weight) return;
+            
+            const weightValue = parseFloat(document.getElementById('editWeightValue').value);
+            const timeStr = document.getElementById('editWeightTime').value;
+            
+            if (!weightValue || !timeStr) {
+                alert('体重と日時を入力してください');
+                return;
+            }
+            
+            weight.weight = weightValue;
+            weight.timestamp = new Date(timeStr).toISOString();
+            
+            // 時間順にソート
+            weightRecords.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            localStorage.setItem('weightRecords', JSON.stringify(weightRecords));
+            closeEditWeightModal();
+            renderWeightHistory();
+        }
+
+        // ジャーナル
+        function selectMood(mood) {
+            selectedMood = mood;
+            document.querySelectorAll('#journalTab .mood-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mood === mood) btn.classList.add('active');
+            });
+        }
+
+        function selectEditMood(mood) {
+            editSelectedMood = mood;
+            document.querySelectorAll('#editJournalModal .mood-button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.mood === mood) btn.classList.add('active');
+            });
+        }
+
+        setupVoiceRecognition('journalVoiceButton', (transcript) => {
+            const currentText = document.getElementById('journalTextInput').value;
+            if (currentText) {
+                document.getElementById('journalTextInput').value = currentText + '\n' + transcript;
+            } else {
+                document.getElementById('journalTextInput').value = transcript;
+            }
+        });
+
+        document.getElementById('journalAddButton').addEventListener('click', () => {
+            const text = document.getElementById('journalTextInput').value.trim();
+            
+            if (!text) {
+                document.getElementById('journalStatus').textContent = '❌ 内容を入力してください';
+                return;
+            }
+            
+            // 同じ日のジャーナルがあれば上書き確認
+            const today = new Date().toDateString();
+            const existingIndex = journals.findIndex(j => new Date(j.timestamp).toDateString() === today);
+            
+            if (existingIndex >= 0) {
+                if (!confirm('今日のジャーナルは既に存在します。上書きしますか？')) {
+                    return;
+                }
+                journals[existingIndex] = {
+                    ...journals[existingIndex],
+                    text: text,
+                    mood: selectedMood,
+                    timestamp: new Date().toISOString()
+                };
+            } else {
+                journals.push({
+                    id: Date.now(),
+                    text: text,
+                    mood: selectedMood,
+                    timestamp: new Date().toISOString()
+                });
+            }
+            
+            localStorage.setItem('journals', JSON.stringify(journals));
+            document.getElementById('journalTextInput').value = '';
+            selectedMood = 'normal';
+            selectMood('normal');
+            document.getElementById('journalStatus').textContent = '✓ ジャーナルを保存しました';
+            setTimeout(() => document.getElementById('journalStatus').textContent = '', 2000);
+            renderJournalList();
+        });
+
+        function renderJournalList() {
+            const list = document.getElementById('journalList');
+            const sorted = [...journals].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            if (sorted.length === 0) {
+                list.innerHTML = '<div class="empty-state">まだジャーナルがありません<br>音声入力で今日の振り返りを記録しましょう！</div>';
+                return;
+            }
+            
+            list.innerHTML = sorted.map(j => {
+                const date = new Date(j.timestamp).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+                
+                return `
+                    <div class="journal-item">
+                        <div class="journal-header">
+                            <div class="journal-date">${date}</div>
+                            <div class="journal-mood">${moodEmojis[j.mood]}</div>
+                        </div>
+                        <div class="journal-content">${j.text}</div>
+                        <div class="log-actions">
+                            <button class="edit-button" onclick="editJournal(${j.id})">✏️ 編集</button>
+                            <button class="delete-button" onclick="deleteJournal(${j.id})">🗑️ 削除</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editJournal(id) {
+            const journal = journals.find(j => j.id === id);
+            if (!journal) return;
+            
+            editingId = id;
+            editSelectedMood = journal.mood;
+            document.getElementById('editJournalText').value = journal.text;
+            document.getElementById('editJournalTime').value = new Date(journal.timestamp).toISOString().slice(0, 16);
+            selectEditMood(journal.mood);
+            document.getElementById('editJournalModal').classList.add('show');
+        }
+
+        function closeEditJournalModal() {
+            document.getElementById('editJournalModal').classList.remove('show');
+            editingId = null;
+        }
+
+        function saveEditJournal() {
+            const text = document.getElementById('editJournalText').value.trim();
+            const timestamp = new Date(document.getElementById('editJournalTime').value).toISOString();
+            
+            if (!text) {
+                alert('内容を入力してください');
+                return;
+            }
+            
+            const journal = journals.find(j => j.id === editingId);
+            if (journal) {
+                journal.text = text;
+                journal.mood = editSelectedMood;
+                journal.timestamp = timestamp;
+                
+                journals.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                localStorage.setItem('journals', JSON.stringify(journals));
+                renderJournalList();
+                closeEditJournalModal();
+            }
+        }
+
+        function deleteJournal(id) {
+            if (confirm('このジャーナルを削除しますか？')) {
+                journals = journals.filter(j => j.id !== id);
+                localStorage.setItem('journals', JSON.stringify(journals));
+                renderJournalList();
+            }
+        }
+
+        // モーダル外クリックで閉じる
+        document.getElementById('editJournalModal').addEventListener('click', (e) => {
+            if (e.target.id === 'editJournalModal') closeEditJournalModal();
+        });
+
+        // レポート生成
+        function renderReport() {
+            const periodActivities = filterByDateRange(activities);
+            const periodMoney = filterByDateRange(moneyRecords);
+            const periodWeight = filterByDateRange(weightRecords);
+            const periodJournals = filterByDateRange(journals);
+            
+            renderActivitySummary(periodActivities);
+            renderMoneySummary(periodMoney);
+            renderWeightSummary(periodWeight);
+            renderJournalSummary(periodJournals);
+            
+            document.getElementById('adviceContent').classList.remove('show');
+        }
+
+        function renderActivitySummary(data) {
+            const categoryTime = {};
+            const categoryCount = {};
+            let totalMinutes = 0;
+            
+            data.forEach(a => {
+                const endTime = a.endTime || Date.now();
+                const minutes = Math.round((endTime - a.startTime) / 60000);
+                if (!categoryTime[a.category]) {
+                    categoryTime[a.category] = 0;
+                    categoryCount[a.category] = 0;
+                }
+                categoryTime[a.category] += minutes;
+                categoryCount[a.category]++;
+                totalMinutes += minutes;
+            });
+            
+            const hours = (totalMinutes / 60).toFixed(1);
+            const days = currentPeriod === 'today' ? 1 : (currentPeriod === 'week' ? 7 : 30);
+            const avgPerDay = (totalMinutes / days / 60).toFixed(1);
+            
+            // サマリーカード
+            document.getElementById('activitySummary').innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-item-title">総記録数</div>
+                    <div class="summary-item-value">${data.length}件</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">合計時間</div>
+                    <div class="summary-item-value">${hours}h</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">1日平均</div>
+                    <div class="summary-item-value">${avgPerDay}h</div>
+                </div>
+            `;
+            
+            // カテゴリ別詳細表を追加
+            if (Object.keys(categoryTime).length > 0) {
+                const detailTable = document.createElement('div');
+                detailTable.style.cssText = 'margin-top: 20px; overflow-x: auto;';
+                
+                // 時間順にソート
+                const sortedCategories = Object.entries(categoryTime)
+                    .sort((a, b) => b[1] - a[1]);
+                
+                let tableHTML = `
+                    <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <thead>
+                            <tr style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                <th style="padding: 12px; text-align: left; font-size: 0.9em;">カテゴリ</th>
+                                <th style="padding: 12px; text-align: right; font-size: 0.9em;">合計時間</th>
+                                <th style="padding: 12px; text-align: right; font-size: 0.9em;">割合</th>
+                                <th style="padding: 12px; text-align: right; font-size: 0.9em;">記録数</th>
+                                <th style="padding: 12px; text-align: right; font-size: 0.9em;">平均/回</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                sortedCategories.forEach(([category, minutes], index) => {
+                    const hours = (minutes / 60).toFixed(1);
+                    const percentage = ((minutes / totalMinutes) * 100).toFixed(1);
+                    const count = categoryCount[category];
+                    const avgMinutes = Math.round(minutes / count);
+                    const avgHours = (avgMinutes / 60).toFixed(1);
+                    const bgColor = index % 2 === 0 ? '#f8f9ff' : 'white';
+                    
+                    tableHTML += `
+                        <tr style="background: ${bgColor}; border-bottom: 1px solid #e0e0e0;">
+                            <td style="padding: 12px; font-weight: 500;">${activityCategoryNames[category] || category}</td>
+                            <td style="padding: 12px; text-align: right; font-weight: 600; color: #667eea;">${hours}h (${minutes}分)</td>
+                            <td style="padding: 12px; text-align: right;">${percentage}%</td>
+                            <td style="padding: 12px; text-align: right;">${count}回</td>
+                            <td style="padding: 12px; text-align: right; color: #666;">${avgHours}h</td>
+                        </tr>
+                    `;
+                });
+                
+                tableHTML += `
+                        </tbody>
+                    </table>
+                `;
+                
+                detailTable.innerHTML = tableHTML;
+                document.getElementById('activitySummary').appendChild(detailTable);
+            }
+            
+            // 日別の個別記録一覧を追加
+            if (data.length > 0) {
+                const dailyRecords = document.createElement('div');
+                dailyRecords.style.cssText = 'margin-top: 30px;';
+                
+                // 日付ごとにグループ化
+                const recordsByDate = {};
+                data.forEach(a => {
+                    const date = new Date(a.timestamp).toLocaleDateString('ja-JP', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        weekday: 'short'
+                    });
+                    if (!recordsByDate[date]) recordsByDate[date] = [];
+                    recordsByDate[date].push(a);
+                });
+                
+                // 日付順にソート（新しい順）
+                const sortedDates = Object.keys(recordsByDate).sort((a, b) => {
+                    return new Date(recordsByDate[b][0].timestamp) - new Date(recordsByDate[a][0].timestamp);
+                });
+                
+                let dailyHTML = '<div style="margin-bottom: 10px;">';
+                dailyHTML += '<h3 style="font-size: 1.2em; color: #667eea; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">';
+                dailyHTML += '<span>📅 日別の記録</span>';
+                dailyHTML += '<button onclick="toggleAllDailyRecords()" id="toggleAllBtn" style="padding: 5px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em;">すべて展開</button>';
+                dailyHTML += '</h3>';
+                
+                sortedDates.forEach((date, dateIndex) => {
+                    const records = recordsByDate[date];
+                    const dailyTotal = records.reduce((sum, a) => {
+                        const endTime = a.endTime || Date.now();
+                        return sum + Math.round((endTime - a.startTime) / 60000);
+                    }, 0);
+                    const dailyHours = (dailyTotal / 60).toFixed(1);
+                    
+                    dailyHTML += `
+                        <div style="margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 10px; overflow: hidden; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div onclick="toggleDailyRecord(${dateIndex})" style="padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 1.05em;">${date}</strong>
+                                    <span style="margin-left: 15px; opacity: 0.9;">${records.length}件 / ${dailyHours}h</span>
+                                </div>
+                                <span id="arrow-${dateIndex}" style="font-size: 1.2em; transition: transform 0.3s;">▼</span>
+                            </div>
+                            <div id="daily-${dateIndex}" style="display: none; padding: 0;">
+                    `;
+                    
+                    // 時刻順にソート
+                    const sortedRecords = [...records].sort((a, b) => a.startTime - b.startTime);
+                    
+                    sortedRecords.forEach((a, recordIndex) => {
+                        const startTime = new Date(a.startTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+                        const endTime = a.endTime ? new Date(a.endTime).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '継続中';
+                        const duration = a.endTime ? Math.round((a.endTime - a.startTime) / 60000) : Math.round((Date.now() - a.startTime) / 60000);
+                        const hours = (duration / 60).toFixed(1);
+                        const bgColor = recordIndex % 2 === 0 ? '#f8f9ff' : 'white';
+                        
+                        dailyHTML += `
+                            <div style="padding: 12px 15px; border-bottom: 1px solid #f0f0f0; background: ${bgColor}; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 500; color: #333; margin-bottom: 5px;">${a.text}</div>
+                                    <div style="font-size: 0.9em; color: #666;">
+                                        <span style="background: #e3f2fd; padding: 3px 8px; border-radius: 4px; margin-right: 10px;">${activityCategoryNames[a.category] || a.category}</span>
+                                        <span>⏰ ${startTime} - ${endTime}</span>
+                                        <span style="margin-left: 10px; font-weight: 600; color: #667eea;">(${hours}h)</span>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 5px;">
+                                    <button onclick="editActivity(${a.id})" style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em;">✏️ 編集</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    dailyHTML += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                dailyHTML += '</div>';
+                dailyRecords.innerHTML = dailyHTML;
+                document.getElementById('activitySummary').appendChild(dailyRecords);
+            }
+            
+            // グラフ表示
+            const ctx = document.getElementById('reportActivityChart').getContext('2d');
+            if (window.reportActivityChart) window.reportActivityChart.destroy();
+            
+            if (Object.keys(categoryTime).length > 0) {
+                const colors = { 
+                    work: '#1976d2', study: '#7b1fa2', exercise: '#388e3c', 
+                    meal: '#f57c00', leisure: '#c2185b', other: '#616161' 
+                };
+                
+                // カスタムカテゴリの色をランダムに生成
+                Object.keys(categoryTime).forEach(cat => {
+                    if (!colors[cat]) {
+                        colors[cat] = `hsl(${Math.random() * 360}, 60%, 50%)`;
+                    }
+                });
+                
+                window.reportActivityChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(categoryTime).map(c => activityCategoryNames[c] || c),
+                        datasets: [{
+                            data: Object.values(categoryTime),
+                            backgroundColor: Object.keys(categoryTime).map(c => colors[c])
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderMoneySummary(data) {
+            let income = 0, expense = 0;
+            const categoryExpense = {};
+            
+            data.forEach(r => {
+                if (r.type === 'income') {
+                    income += r.amount;
+                } else {
+                    expense += r.amount;
+                    if (!categoryExpense[r.category]) categoryExpense[r.category] = 0;
+                    categoryExpense[r.category] += r.amount;
+                }
+            });
+            
+            const balance = income - expense;
+            const days = currentPeriod === 'today' ? 1 : (currentPeriod === 'week' ? 7 : 30);
+            const avgExpensePerDay = (expense / days).toFixed(0);
+            
+            document.getElementById('moneySummary').innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-item-title">収入</div>
+                    <div class="summary-item-value" style="color: #4CAF50;">+${income.toLocaleString()}円</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">支出</div>
+                    <div class="summary-item-value" style="color: #f44336;">-${expense.toLocaleString()}円</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">収支</div>
+                    <div class="summary-item-value" style="color: ${balance >= 0 ? '#4CAF50' : '#f44336'};">${balance >= 0 ? '+' : ''}${balance.toLocaleString()}円</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">1日平均支出</div>
+                    <div class="summary-item-value">${avgExpensePerDay}円</div>
+                </div>
+            `;
+            
+            const ctx = document.getElementById('reportMoneyChart').getContext('2d');
+            if (window.reportMoneyChart) window.reportMoneyChart.destroy();
+            
+            if (Object.keys(categoryExpense).length > 0) {
+                const colors = { food: '#c62828', transport: '#00695c', shopping: '#ad1457', entertainment: '#6a1b9a', other: '#616161' };
+                window.reportMoneyChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(categoryExpense),
+                        datasets: [{
+                            label: '支出（円）',
+                            data: Object.values(categoryExpense),
+                            backgroundColor: Object.keys(categoryExpense).map(c => colors[c] || '#616161')
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            }
+        }
+
+        function renderWeightSummary(data) {
+            if (data.length === 0) {
+                document.getElementById('weightSummary').innerHTML = '<div class="empty-state">データなし</div>';
+                return;
+            }
+            
+            const sorted = [...data].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const latest = sorted[sorted.length - 1].weight;
+            const oldest = sorted[0].weight;
+            const change = latest - oldest;
+            const average = (data.reduce((sum, r) => sum + r.weight, 0) / data.length).toFixed(1);
+            
+            document.getElementById('weightSummary').innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-item-title">最新体重</div>
+                    <div class="summary-item-value">${latest}kg</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">変化</div>
+                    <div class="summary-item-value" style="color: ${change < 0 ? '#4CAF50' : change > 0 ? '#f44336' : '#666'};">${change > 0 ? '+' : ''}${change.toFixed(1)}kg</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-item-title">平均</div>
+                    <div class="summary-item-value">${average}kg</div>
+                </div>
+            `;
+            
+            const ctx = document.getElementById('reportWeightChart').getContext('2d');
+            if (window.reportWeightChart) window.reportWeightChart.destroy();
+            
+            window.reportWeightChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sorted.map(r => new Date(r.timestamp).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        label: '体重（kg）',
+                        data: sorted.map(r => r.weight),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: false } }
+                }
+            });
+        }
+
+        function renderJournalSummary(data) {
+            const list = document.getElementById('journalSummaryList');
+            
+            if (data.length === 0) {
+                list.innerHTML = '<div class="empty-state">この期間のジャーナルはありません</div>';
+                return;
+            }
+            
+            const sorted = [...data].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            list.innerHTML = sorted.map(j => {
+                const date = new Date(j.timestamp).toLocaleDateString('ja-JP', {
+                    month: 'short',
+                    day: 'numeric',
+                    weekday: 'short'
+                });
+                
+                const preview = j.text.length > 150 ? j.text.slice(0, 150) + '...' : j.text;
+                
+                return `
+                    <div class="journal-summary-item">
+                        <div class="journal-summary-item-date">${moodEmojis[j.mood]} ${date}</div>
+                        <div class="journal-summary-item-preview">${preview}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // AIアドバイス生成
+        function generateAdvice() {
+            const button = document.querySelector('.ai-advice-button');
+            const content = document.getElementById('adviceContent');
+            
+            button.textContent = '🤖 分析中...';
+            button.classList.add('loading');
+            
+            setTimeout(() => {
+                const advice = analyzeData();
+                content.innerHTML = advice;
+                content.classList.add('show');
+                button.textContent = '🤖 AIで総合的な振り返り分析を取得';
+                button.classList.remove('loading');
+            }, 1500);
+        }
+
+        function analyzeData() {
+            const periodActivities = filterByDateRange(activities);
+            const periodMoney = filterByDateRange(moneyRecords);
+            const periodWeight = filterByDateRange(weightRecords);
+            const periodJournals = filterByDateRange(journals);
+            
+            let advice = '<h4>📊 総合分析</h4>';
+            
+            // ジャーナル分析
+            if (periodJournals.length > 0) {
+                const moodCounts = { good: 0, normal: 0, bad: 0 };
+                periodJournals.forEach(j => moodCounts[j.mood]++);
+                
+                const totalDays = currentPeriod === 'today' ? 1 : (currentPeriod === 'week' ? 7 : 30);
+                const journalRate = ((periodJournals.length / totalDays) * 100).toFixed(0);
+                
+                advice += `<h4>📔 ジャーナルから見える心の状態</h4><ul>`;
+                advice += `<li>この期間に<strong>${periodJournals.length}日分</strong>のジャーナルを記録しました（記録率${journalRate}%）。</li>`;
+                
+                if (moodCounts.good > moodCounts.bad) {
+                    advice += `<li>😊 良い日が多く、ポジティブな期間でしたね！</li>`;
+                } else if (moodCounts.bad > moodCounts.good) {
+                    advice += `<li>😢 大変な日が多かったようです。無理せず休息を取りましょう。</li>`;
+                } else {
+                    advice += `<li>😐 安定した日々を過ごせていますね。</li>`;
+                }
+                
+                advice += '</ul>';
+            }
+            
+            // 行動分析
+            if (periodActivities.length > 0) {
+                const categoryTime = {};
+                periodActivities.forEach(a => {
+                    const minutes = Math.round(((a.endTime || Date.now()) - a.startTime) / 60000);
+                    if (!categoryTime[a.category]) categoryTime[a.category] = 0;
+                    categoryTime[a.category] += minutes;
+                });
+                
+                const topCategory = Object.keys(categoryTime).reduce((a, b) => categoryTime[a] > categoryTime[b] ? a : b);
+                const topHours = (categoryTime[topCategory] / 60).toFixed(1);
+                
+                advice += `<h4>⏱️ 行動パターン</h4><ul>`;
+                advice += `<li>最も時間を使ったのは<strong>「${activityCategoryNames[topCategory]}」</strong>で${topHours}時間です。</li>`;
+                
+                if (categoryTime['exercise'] && categoryTime['exercise'] < 60 * 2) {
+                    advice += `<li>💪 運動時間が少なめです。1日30分の運動を目標にしましょう。</li>`;
+                } else if (categoryTime['exercise']) {
+                    advice += `<li>💪 運動習慣が素晴らしいです！継続しましょう。</li>`;
+                }
+                
+                advice += '</ul>';
+            }
+            
+            // お金分析
+            if (periodMoney.length > 0) {
+                let income = 0, expense = 0;
+                periodMoney.forEach(r => {
+                    if (r.type === 'income') income += r.amount;
+                    else expense += r.amount;
+                });
+                
+                const balance = income - expense;
+                
+                advice += `<h4>💰 お金の使い方</h4><ul>`;
+                
+                if (balance > 0) {
+                    advice += `<li>✅ 収支がプラス${balance.toLocaleString()}円です。良好な状態ですね！</li>`;
+                } else if (balance < 0) {
+                    advice += `<li>⚠️ 収支がマイナス${Math.abs(balance).toLocaleString()}円です。支出を見直してみましょう。</li>`;
+                }
+                
+                advice += '</ul>';
+            }
+            
+            // 体重分析
+            if (periodWeight.length > 1) {
+                const sorted = [...periodWeight].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                const change = sorted[sorted.length - 1].weight - sorted[0].weight;
+                
+                advice += `<h4>⚖️ 体重の変化</h4><ul>`;
+                
+                if (Math.abs(change) < 0.5) {
+                    advice += `<li>✅ 体重が安定しています。現状維持できていますね。</li>`;
+                } else if (change < 0) {
+                    advice += `<li>📉 ${Math.abs(change).toFixed(1)}kg減少しました。健康的なペースです！</li>`;
+                } else {
+                    advice += `<li>📈 ${change.toFixed(1)}kg増加しました。食生活と運動を見直してみましょう。</li>`;
+                }
+                
+                advice += '</ul>';
+            }
+            
+            // 総合アドバイス
+            advice += `<h4>🎯 次の目標</h4><ul>`;
+            
+            if (periodJournals.length < 3 && currentPeriod === 'week') {
+                advice += `<li>毎日のジャーナル習慣をつけると、自己理解が深まります。</li>`;
+            }
+            
+            if (!periodActivities.some(a => a.category === 'exercise')) {
+                advice += `<li>まずは週に3回、30分の運動を習慣化してみましょう。</li>`;
+            }
+            
+            advice += `<li>このペースで記録を続けることで、より詳細な分析ができるようになります！</li>`;
+            advice += '</ul>';
+            
+            return advice;
+        }
+
+        // カテゴリ管理
+        let currentCategoryType = 'activity';
+        let allDailyRecordsExpanded = false;
+
+        function toggleDailyRecord(index) {
+            const content = document.getElementById(`daily-${index}`);
+            const arrow = document.getElementById(`arrow-${index}`);
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleAllDailyRecords() {
+            allDailyRecordsExpanded = !allDailyRecordsExpanded;
+            const toggleBtn = document.getElementById('toggleAllBtn');
+            
+            // すべての日別記録を展開/折りたたみ
+            const allContents = document.querySelectorAll('[id^="daily-"]');
+            const allArrows = document.querySelectorAll('[id^="arrow-"]');
+            
+            allContents.forEach(content => {
+                content.style.display = allDailyRecordsExpanded ? 'block' : 'none';
+            });
+            
+            allArrows.forEach(arrow => {
+                arrow.style.transform = allDailyRecordsExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+            });
+            
+            toggleBtn.textContent = allDailyRecordsExpanded ? 'すべて折りたたむ' : 'すべて展開';
+        }
+
+        function openCategoryManager(type) {
+            currentCategoryType = type;
+            document.getElementById('categoryManagerTitle').textContent = 
+                type === 'activity' ? '⚙️ 行動カテゴリ管理' : '⚙️ お金カテゴリ管理';
+            renderCategoryList();
+            document.getElementById('categoryManagerModal').classList.add('show');
+        }
+
+        function closeCategoryManager() {
+            document.getElementById('categoryManagerModal').classList.remove('show');
+            document.getElementById('newCategoryKey').value = '';
+            document.getElementById('newCategoryName').value = '';
+        }
+
+        function renderCategoryList() {
+            const defaultCategories = currentCategoryType === 'activity' ? 
+                defaultActivityCategories : defaultMoneyCategories;
+            const customCategories = currentCategoryType === 'activity' ? 
+                customActivityCategories : customMoneyCategories;
+            const allCategories = { ...defaultCategories, ...customCategories };
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 10px;">';
+            
+            Object.entries(allCategories).forEach(([key, name]) => {
+                const isDefault = key in defaultCategories;
+                const deleteButton = isDefault ? 
+                    '<span style="color: #999; font-size: 0.85em;">（デフォルト）</span>' : 
+                    `<button onclick="deleteCustomCategory('${key}')" style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 0.85em;">✖ 削除</button>`;
+                
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: ${isDefault ? '#f0f0f0' : '#e3f2fd'}; border-radius: 8px;">
+                        <div>
+                            <strong style="color: #667eea;">${name}</strong>
+                            <span style="color: #999; margin-left: 10px; font-size: 0.85em;">(${key})</span>
+                        </div>
+                        ${deleteButton}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('categoryList').innerHTML = html;
+        }
+
+        function addCustomCategory() {
+            const key = document.getElementById('newCategoryKey').value.trim();
+            const name = document.getElementById('newCategoryName').value.trim();
+            
+            if (!key || !name) {
+                alert('IDと名前を入力してください');
+                return;
+            }
+            
+            // IDのバリデーション（英数字のみ）
+            if (!/^[a-zA-Z0-9_]+$/.test(key)) {
+                alert('IDは英数字とアンダースコアのみ使用できます');
+                return;
+            }
+            
+            // 重複チェック
+            const allCategories = currentCategoryType === 'activity' ? 
+                { ...defaultActivityCategories, ...customActivityCategories } : 
+                { ...defaultMoneyCategories, ...customMoneyCategories };
+            
+            if (key in allCategories) {
+                alert('このIDはすでに存在します');
+                return;
+            }
+            
+            // 追加
+            if (currentCategoryType === 'activity') {
+                customActivityCategories[key] = name;
+                localStorage.setItem('customActivityCategories', JSON.stringify(customActivityCategories));
+                // activityCategoryNamesを更新
+                Object.assign(activityCategoryNames, customActivityCategories);
+                updateActivityCategorySelects();
+            } else {
+                customMoneyCategories[key] = name;
+                localStorage.setItem('customMoneyCategories', JSON.stringify(customMoneyCategories));
+                // moneyCategoryNamesを更新
+                Object.assign(moneyCategoryNames, customMoneyCategories);
+                updateMoneyCategorySelects();
+            }
+            
+            document.getElementById('newCategoryKey').value = '';
+            document.getElementById('newCategoryName').value = '';
+            renderCategoryList();
+        }
+
+        function deleteCustomCategory(key) {
+            if (!confirm(`カテゴリ「${currentCategoryType === 'activity' ? activityCategoryNames[key] : moneyCategoryNames[key]}」を削除しますか？`)) {
+                return;
+            }
+            
+            if (currentCategoryType === 'activity') {
+                delete customActivityCategories[key];
+                delete activityCategoryNames[key];
+                localStorage.setItem('customActivityCategories', JSON.stringify(customActivityCategories));
+                updateActivityCategorySelects();
+            } else {
+                delete customMoneyCategories[key];
+                delete moneyCategoryNames[key];
+                localStorage.setItem('customMoneyCategories', JSON.stringify(customMoneyCategories));
+                updateMoneyCategorySelects();
+            }
+            
+            renderCategoryList();
+        }
+
+        function updateActivityCategorySelects() {
+            const selects = ['activityCategorySelect', 'editActivityCategory'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                
+                const currentValue = select.value;
+                select.innerHTML = '';
+                
+                // デフォルトカテゴリ
+                Object.entries(defaultActivityCategories).forEach(([key, name]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+                
+                // カスタムカテゴリ
+                Object.entries(customActivityCategories).forEach(([key, name]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `⭐ ${name}`;
+                    select.appendChild(option);
+                });
+                
+                if (currentValue && activityCategoryNames[currentValue]) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        function updateMoneyCategorySelects() {
+            const selects = ['moneyCategorySelect', 'editMoneyCategory'];
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                
+                const currentValue = select.value;
+                select.innerHTML = '';
+                
+                // デフォルトカテゴリ
+                Object.entries(defaultMoneyCategories).forEach(([key, name]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+                
+                // カスタムカテゴリ
+                Object.entries(customMoneyCategories).forEach(([key, name]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `⭐ ${name}`;
+                    select.appendChild(option);
+                });
+                
+                if (currentValue && moneyCategoryNames[currentValue]) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        // 初期表示
+        updateActivityCategorySelects();
+        updateMoneyCategorySelects();
+        renderActivityLogs();
+        renderMoneyLogs();
+        renderWeightHistory();
+        renderJournalList();
+    </script>
+</body>
+</html>
