@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>ライフログアプリ v9.1</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+            background: #ffffff;
+            color: #333;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        button {
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+            color: #000;
+        }
+        
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 30px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .tab-nav::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-button {
+            flex: 1;
+            min-width: 80px;
+            padding: 15px 10px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.95em;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .tab-button.active {
+            color: #000;
+            border-bottom-color: #000;
+            font-weight: 600;
+        }
+        
+        .tab-button:active {
+            opacity: 0.7;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .voice-button {
+            width: 100%;
+            padding: 18px;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 12px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .voice-button:hover {
+            background: #000;
+            color: #fff;
+        }
+        
+        .voice-button:active {
+            transform: scale(0.98);
+        }
+        
+        .voice-button.listening {
+            background: #000;
+            color: #fff;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .quick-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .quick-button {
+            padding: 12px 8px;
+            background: #fff;
+            border: 1px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.2s;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .quick-button:hover {
+            background: #f5f5f5;
+            border-color: #000;
+        }
+        
+        .quick-button:active {
+            background: #000;
+            color: #fff;
+            transform: scale(0.95);
+        }
+        
+        .text-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        
+        .text-input:focus {
+            outline: none;
+            border-color: #000;
+            border-width: 2px;
+        }
+        
+        textarea.text-input {
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .add-button {
+            width: 100%;
+            padding: 14px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .add-button:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .logs-section {
+            margin-top: 30px;
+        }
+        
+        .section-title {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .log-item {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .log-item:hover {
+            border-color: #000;
+        }
+        
+        /* カテゴリ管理ボタン */
+        .manage-button {
+            padding: 8px 15px;
+            background: #fff;
+            color: #000;
+            border: 1px solid #000;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .manage-button:hover {
+            background: #000;
+            color: #fff;
+        }
+        
+        /* 気分選択 */
+        .mood-selector {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .mood-selector-title {
+            font-size: 1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #000;
+        }
+        
+        .mood-buttons {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+        }
+        
+        .mood-button {
+            flex: 1;
+            padding: 15px 5px;
+            background: #fff;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .mood-button:hover {
+            border-color: #666;
+            transform: translateY(-2px);
+        }
+        
+        .mood-button.selected {
+            border-color: #000;
+            background: #f0f8ff;
+            border-width: 3px;
+        }
+        
+        .mood-emoji {
+            font-size: 2em;
+        }
+        
+        .mood-label {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .mood-button.selected .mood-label {
+            color: #000;
+            font-weight: 600;
+        }
+        
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #000;
+        }
+        
+        .modal-close {
+            float: right;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .modal-close:hover {
+            color: #000;
+        }
+        
+        /* ジャーナル要約セクション */
+        .summary-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 12px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .summary-section.active {
+            display: block;
+        }
+        
+        .summary-item {
+            margin-bottom: 20px;
+        }
+        
+        .summary-label {
+            font-weight: 600;
+            font-size: 1em;
+            margin-bottom: 8px;
+            color: #000;
+        }
+        
+        .summary-content {
+            padding: 12px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            min-height: 60px;
+            white-space: pre-wrap;
+        }
+        
+        .ai-comment {
+            margin-top: 10px;
+            padding: 12px;
+            background: #f0f8ff;
+            border-left: 4px solid #000;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #333;
+        }
+        
+        .ai-comment::before {
+            content: '💬 AIからのコメント: ';
+            font-weight: 600;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        /* カレンダー */
+        .calendar {
+            margin-top: 20px;
+        }
+        
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .calendar-nav {
+            padding: 8px 15px;
+            background: #fff;
+            border: 1px solid #000;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        .calendar-nav:active {
+            background: #000;
+            color: #fff;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+        }
+        
+        .calendar-day-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 10px 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            background: #fff;
+            transition: all 0.2s;
+        }
+        
+        .calendar-day:hover {
+            border-color: #000;
+        }
+        
+        .calendar-day.today {
+            background: #000;
+            color: #fff;
+            font-weight: 600;
+        }
+        
+        .calendar-day.has-journal {
+            background: #f0f8ff;
+            border-color: #666;
+        }
+        
+        .calendar-day.today.has-journal {
+            background: #000;
+            color: #fff;
+        }
+        
+        .calendar-day.empty {
+            background: transparent;
+            border: none;
+            cursor: default;
+        }
+        
+        .calendar-day-mood {
+            font-size: 1.2em;
+            margin-top: 2px;
+        }
+        
+        /* レポート */
+        .chart-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            padding: 15px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2em;
+            font-weight: 600;
+            color: #000;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* AIフィードバック */
+        .ai-feedback-container {
+            margin: 20px 0;
+            padding: 25px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 12px;
+            border: 2px solid #000;
+        }
+        
+        .ai-feedback-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .feedback-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .feedback-section h4 {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .feedback-item {
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+        }
+        
+        .feedback-icon {
+            font-size: 1.2em;
+        }
+        
+        .ai-advice-box {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #000;
+            margin: 15px 0;
+            line-height: 1.8;
+        }
+        
+        .ai-advice-box::before {
+            content: '💬 AIからのアドバイス';
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #000;
+        }
+        
+        .goals-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .goals-list li {
+            padding: 10px;
+            margin: 8px 0;
+            background: #f9f9f9;
+            border-radius: 6px;
+            border-left: 3px solid #000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .goals-list li::before {
+            content: '•';
+            font-size: 1.5em;
+            color: #000;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+            }
+            
+            .tab-button {
+                min-width: 70px;
+                padding: 12px 8px;
+                font-size: 0.85em;
+            }
+            
+            .voice-button {
+                padding: 16px;
+                font-size: 1em;
+            }
+            
+            .quick-buttons {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px;
+            }
+            
+            .quick-button {
+                padding: 10px 5px;
+                font-size: 0.85em;
+                min-height: 48px;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 ライフログ v9.1</h1>
+        
+        <div class="tab-nav">
+            <button class="tab-button active" onclick="switchTab('activity')">⏱️ 行動</button>
+            <button class="tab-button" onclick="switchTab('money')">💰 お金</button>
+            <button class="tab-button" onclick="switchTab('weight')">⚖️ 体重</button>
+            <button class="tab-button" onclick="switchTab('journal')">📔 ジャーナル</button>
+            <button class="tab-button" onclick="switchTab('report')">📊 レポート</button>
+        </div>
+        
+        <!-- 行動タブ -->
+        <div id="activity" class="tab-content active">
+            <button id="activityVoiceButton" class="voice-button">🎤 音声入力で記録</button>
+            
+            <div id="activityQuickButtons" class="quick-buttons"></div>
+            
+            <input type="text" id="activityInput" class="text-input" placeholder="活動内容を入力...">
+            <button class="add-button" onclick="addActivity()">➕ 記録</button>
+            <div id="activityStatus" class="status"></div>
+            
+            <div class="logs-section">
+                <div class="section-title">
+                    <span>今日の行動</span>
+                    <button class="manage-button" onclick="openCategoryManager()">⚙️ カテゴリ管理</button>
+                </div>
+                <div id="activityLogs"></div>
+            </div>
+        </div>
+        
+        <!-- お金タブ -->
+        <div id="money" class="tab-content">
+            <button id="moneyVoiceButton" class="voice-button">🎤 音声入力で記録</button>
+            
+            <div class="quick-buttons">
+                <button class="quick-button" onclick="quickAddMoney('収入', 10000)">💰 収入</button>
+                <button class="quick-button" onclick="quickAddMoney('支出', -500)">💸 支出</button>
+                <button class="quick-button" onclick="quickAddMoney('食費', -800)">🍽️ 食費</button>
+                <button class="quick-button" onclick="quickAddMoney('交通費', -300)">🚃 交通</button>
+                <button class="quick-button" onclick="quickAddMoney('娯楽', -1000)">🎮 娯楽</button>
+                <button class="quick-button" onclick="quickAddMoney('光熱費', -5000)">💡 光熱費</button>
+                <button class="quick-button" onclick="quickAddMoney('通信費', -3000)">📱 通信</button>
+                <button class="quick-button" onclick="quickAddMoney('その他', -500)">📌 その他</button>
+            </div>
+            
+            <input type="text" id="moneyInput" class="text-input" placeholder="内容を入力...">
+            <input type="number" id="moneyAmount" class="text-input" placeholder="金額（円）">
+            <button class="add-button" onclick="addMoney()">➕ 記録</button>
+            <div id="moneyStatus" class="status"></div>
+            
+            <div class="logs-section">
+                <h2 class="section-title">今日のお金</h2>
+                <div id="moneyLogs"></div>
+            </div>
+        </div>
+        
+        <!-- 体重タブ -->
+        <div id="weight" class="tab-content">
+            <button id="weightVoiceButton" class="voice-button">🎤 音声入力で記録</button>
+            
+            <input type="number" step="0.1" id="weightInput" class="text-input" placeholder="体重（kg）">
+            <button class="add-button" onclick="addWeight()">➕ 記録</button>
+            <div id="weightStatus" class="status"></div>
+            
+            <div class="logs-section">
+                <h2 class="section-title">体重履歴</h2>
+                <div id="weightLogs"></div>
+            </div>
+        </div>
+        
+        <!-- ジャーナルタブ -->
+        <div id="journal" class="tab-content">
+            <button id="journalVoiceButton" class="voice-button">🎤 音声入力で振り返り</button>
+            
+            <!-- 気分選択 -->
+            <div class="mood-selector">
+                <div class="mood-selector-title">今日の気分を選んでください</div>
+                <div class="mood-buttons">
+                    <button class="mood-button" onclick="selectMood('great')" data-mood="great">
+                        <span class="mood-emoji">😊</span>
+                        <span class="mood-label">最高</span>
+                    </button>
+                    <button class="mood-button" onclick="selectMood('good')" data-mood="good">
+                        <span class="mood-emoji">🙂</span>
+                        <span class="mood-label">良い</span>
+                    </button>
+                    <button class="mood-button" onclick="selectMood('normal')" data-mood="normal">
+                        <span class="mood-emoji">😐</span>
+                        <span class="mood-label">普通</span>
+                    </button>
+                    <button class="mood-button" onclick="selectMood('bad')" data-mood="bad">
+                        <span class="mood-emoji">😔</span>
+                        <span class="mood-label">悪い</span>
+                    </button>
+                    <button class="mood-button" onclick="selectMood('terrible')" data-mood="terrible">
+                        <span class="mood-emoji">😢</span>
+                        <span class="mood-label">最悪</span>
+                    </button>
+                </div>
+            </div>
+            
+            <textarea id="journalInput" class="text-input" placeholder="今日の振り返りを書きましょう...&#10;&#10;例：&#10;朝からジムに行って気持ちよく汗を流した。&#10;午後は集中して仕事ができた。&#10;明日は早起きして新しいプロジェクトに取り組もう。"></textarea>
+            
+            <!-- 自動要約セクション -->
+            <div id="summarySection" class="summary-section">
+                <h3 style="margin-bottom: 15px;">📝 自動要約</h3>
+                
+                <div class="summary-item">
+                    <div class="summary-label">😊 Good（良かったこと）</div>
+                    <div id="summaryGood" class="summary-content"></div>
+                    <div id="commentGood" class="ai-comment"></div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">📈 More（もっと良くできること）</div>
+                    <div id="summaryMore" class="summary-content"></div>
+                    <div id="commentMore" class="ai-comment"></div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">🤔 悩んでいること</div>
+                    <div id="summaryWorry" class="summary-content"></div>
+                    <div id="commentWorry" class="ai-comment"></div>
+                </div>
+                
+                <div class="summary-item">
+                    <div class="summary-label">✅ 明日のタスク</div>
+                    <div id="summaryTask" class="summary-content"></div>
+                    <div id="commentTask" class="ai-comment"></div>
+                </div>
+            </div>
+            
+            <button class="add-button" onclick="addJournal()">📝 保存</button>
+            <div id="journalStatus" class="status"></div>
+            
+            <div class="logs-section">
+                <h2 class="section-title">📅 月間カレンダー</h2>
+                <div class="calendar">
+                    <div class="calendar-header">
+                        <button class="calendar-nav" onclick="changeMonth(-1)">◀ 前月</button>
+                        <span id="calendarMonth" style="font-weight: 600;"></span>
+                        <button class="calendar-nav" onclick="changeMonth(1)">次月 ▶</button>
+                    </div>
+                    <div id="calendar" class="calendar-grid"></div>
+                </div>
+                
+                <h2 class="section-title" style="margin-top: 30px;">ジャーナル履歴</h2>
+                <div id="journalLogs"></div>
+            </div>
+        </div>
+        
+        <!-- レポートタブ -->
+        <div id="report" class="tab-content">
+            <h2 class="section-title">📊 統計レポート</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalActivities">0</div>
+                    <div class="stat-label">総行動数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalMoney">¥0</div>
+                    <div class="stat-label">収支合計</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalJournals">0</div>
+                    <div class="stat-label">ジャーナル数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgWeight">-</div>
+                    <div class="stat-label">平均体重</div>
+                </div>
+            </div>
+            
+            <!-- AIフィードバック -->
+            <div class="ai-feedback-container">
+                <div class="ai-feedback-title">
+                    <span>🤖</span>
+                    <span>AIフィードバック</span>
+                </div>
+                
+                <div class="feedback-section">
+                    <h4>📊 今週の分析</h4>
+                    <div id="weeklyAnalysis"></div>
+                </div>
+                
+                <div class="feedback-section">
+                    <h4>🎯 行動パターン</h4>
+                    <div id="activityPattern"></div>
+                </div>
+                
+                <div class="feedback-section">
+                    <h4>😊 気分の傾向</h4>
+                    <div id="moodTrend"></div>
+                </div>
+                
+                <div class="ai-advice-box" id="aiAdvice"></div>
+                
+                <div class="feedback-section">
+                    <h4>🌟 来週の目標提案</h4>
+                    <ul class="goals-list" id="weeklyGoals"></ul>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="margin-bottom: 15px;">行動カテゴリ別</h3>
+                <canvas id="activityChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="margin-bottom: 15px;">気分の分布</h3>
+                <canvas id="moodChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="margin-bottom: 15px;">お金の推移</h3>
+                <canvas id="moneyChart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3 style="margin-bottom: 15px;">体重の推移</h3>
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- カテゴリ管理モーダル -->
+    <div id="categoryModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeCategoryManager()">&times;</span>
+            <h2 class="modal-title">⚙️ カテゴリ管理</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="newCategoryName" class="text-input" placeholder="新しいカテゴリ名（例：読書）">
+                <input type="text" id="newCategoryEmoji" class="text-input" placeholder="絵文字（例：📖）">
+                <button class="add-button" onclick="addCategory()">➕ 追加</button>
+            </div>
+            
+            <h3 style="margin-bottom: 10px;">現在のカテゴリ</h3>
+            <div id="categoryList"></div>
+        </div>
+    </div>
+    
+    <script>
+        // データ格納
+        let activities = JSON.parse(localStorage.getItem('activities') || '[]');
+        let moneyRecords = JSON.parse(localStorage.getItem('moneyRecords') || '[]');
+        let weightRecords = JSON.parse(localStorage.getItem('weightRecords') || '[]');
+        let journals = JSON.parse(localStorage.getItem('journals') || '[]');
+        
+        // カスタムカテゴリ
+        let activityCategories = JSON.parse(localStorage.getItem('activityCategories') || JSON.stringify([
+            { name: '仕事', emoji: '💼' },
+            { name: '勉強', emoji: '📚' },
+            { name: '運動', emoji: '🏃' },
+            { name: '食事', emoji: '🍽️' },
+            { name: '睡眠', emoji: '😴' },
+            { name: '読書', emoji: '📖' },
+            { name: '家事', emoji: '🧹' },
+            { name: '趣味', emoji: '🎨' }
+        ]));
+        
+        // カレンダー用
+        let currentCalendarDate = new Date();
+        
+        // 現在選択されている気分
+        let selectedMood = 'normal';
+        
+        // 気分の絵文字マッピング
+        const moodEmojis = {
+            great: '😊',
+            good: '🙂',
+            normal: '😐',
+            bad: '😔',
+            terrible: '😢'
+        };
+        
+        // 気分選択
+        function selectMood(mood) {
+            selectedMood = mood;
+            
+            // ボタンの選択状態を更新
+            document.querySelectorAll('.mood-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            const selectedButton = document.querySelector(`.mood-button[data-mood="${mood}"]`);
+            if (selectedButton) {
+                selectedButton.classList.add('selected');
+            }
+        }
+        
+        // タブ切り替え
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabName === 'journal') {
+                renderCalendar();
+            } else if (tabName === 'report') {
+                renderReports();
+            }
+        }
+        
+        // クイックボタンを動的生成
+        function renderActivityQuickButtons() {
+            const container = document.getElementById('activityQuickButtons');
+            container.innerHTML = activityCategories.map(cat => 
+                `<button class="quick-button" onclick="quickAddActivity('${cat.name}')">${cat.emoji} ${cat.name}</button>`
+            ).join('');
+        }
+        
+        // クイック追加：行動
+        function quickAddActivity(activity) {
+            document.getElementById('activityInput').value = activity;
+            addActivity();
+        }
+        
+        // クイック追加：お金
+        function quickAddMoney(category, amount) {
+            document.getElementById('moneyInput').value = category;
+            document.getElementById('moneyAmount').value = Math.abs(amount);
+            addMoney();
+        }
+        
+        // 行動を記録
+        function addActivity() {
+            const input = document.getElementById('activityInput');
+            const text = input.value.trim();
+            
+            if (!text) {
+                showStatus('activityStatus', '❌ 内容を入力してください');
+                return;
+            }
+            
+            const record = {
+                id: Date.now(),
+                text: text,
+                timestamp: new Date().toISOString()
+            };
+            
+            activities.unshift(record);
+            localStorage.setItem('activities', JSON.stringify(activities));
+            
+            input.value = '';
+            showStatus('activityStatus', '✓ 記録しました');
+            renderActivityLogs();
+        }
+        
+        // お金を記録
+        function addMoney() {
+            const input = document.getElementById('moneyInput');
+            const amountInput = document.getElementById('moneyAmount');
+            const text = input.value.trim();
+            const amount = parseFloat(amountInput.value);
+            
+            if (!text || isNaN(amount)) {
+                showStatus('moneyStatus', '❌ 内容と金額を入力してください');
+                return;
+            }
+            
+            const record = {
+                id: Date.now(),
+                text: text,
+                amount: amount,
+                timestamp: new Date().toISOString()
+            };
+            
+            moneyRecords.unshift(record);
+            localStorage.setItem('moneyRecords', JSON.stringify(moneyRecords));
+            
+            input.value = '';
+            amountInput.value = '';
+            showStatus('moneyStatus', '✓ 記録しました');
+            renderMoneyLogs();
+        }
+        
+        // 体重を記録
+        function addWeight() {
+            const input = document.getElementById('weightInput');
+            const weight = parseFloat(input.value);
+            
+            if (isNaN(weight) || weight <= 0) {
+                showStatus('weightStatus', '❌ 正しい体重を入力してください');
+                return;
+            }
+            
+            const record = {
+                id: Date.now(),
+                weight: weight,
+                timestamp: new Date().toISOString()
+            };
+            
+            weightRecords.unshift(record);
+            localStorage.setItem('weightRecords', JSON.stringify(weightRecords));
+            
+            input.value = '';
+            showStatus('weightStatus', '✓ 記録しました');
+            renderWeightLogs();
+        }
+        
+        // ジャーナル自動要約
+        function analyzJournal(text) {
+            const analysis = {
+                good: [],
+                more: [],
+                worry: [],
+                task: []
+            };
+            
+            // キーワード定義
+            const keywords = {
+                good: ['良かった', '嬉しい', '楽しい', '成功', '達成', 'できた', 'よかった', '頑張った', '充実', '満足', '気持ちいい', '気持ちよく', '順調'],
+                more: ['もっと', '改善', '次は', 'これから', '頑張', '目標', 'チャレンジ', '向上', 'より'],
+                worry: ['悩', '困', '難しい', 'うまくいかない', '失敗', '心配', '不安', 'できない', 'わからない', '大変'],
+                task: ['明日', 'やる', 'する', '行く', '会う', '予定', 'タスク', 'todo', '準備', '計画']
+            };
+            
+            const sentences = text.split(/[。．\n]/);
+            
+            sentences.forEach(sentence => {
+                sentence = sentence.trim();
+                if (!sentence) return;
+                
+                let classified = false;
+                
+                // Good
+                if (keywords.good.some(kw => sentence.includes(kw))) {
+                    analysis.good.push(sentence);
+                    classified = true;
+                }
+                
+                // More
+                if (keywords.more.some(kw => sentence.includes(kw))) {
+                    analysis.more.push(sentence);
+                    classified = true;
+                }
+                
+                // Worry
+                if (keywords.worry.some(kw => sentence.includes(kw))) {
+                    analysis.worry.push(sentence);
+                    classified = true;
+                }
+                
+                // Task
+                if (keywords.task.some(kw => sentence.includes(kw))) {
+                    analysis.task.push(sentence);
+                    classified = true;
+                }
+            });
+            
+            return analysis;
+        }
+        
+        // AIコメント生成
+        function generateAIComment(category, items) {
+            if (items.length === 0) {
+                return '';
+            }
+            
+            const comments = {
+                good: [
+                    '素晴らしい1日ですね！ポジティブな出来事がたくさんありました。この調子を続けましょう！',
+                    'とても充実した時間を過ごせましたね。こうした良い経験を積み重ねることが大切です。',
+                    '良いことがたくさんありましたね！この前向きな気持ちを明日も大切にしてください。',
+                    '素敵な1日でしたね。小さな喜びを見つけられるあなたの姿勢が素晴らしいです。'
+                ],
+                more: [
+                    '向上心が素晴らしいです！一歩ずつ前進していきましょう。',
+                    '改善点を見つけられることは成長の証です。少しずつ取り組んでいきましょう。',
+                    '次への意欲が感じられます。計画的に進めれば、きっと達成できますよ。',
+                    'より良くしようとする姿勢が素晴らしいです。焦らず、確実に進みましょう。'
+                ],
+                worry: [
+                    '悩みを言語化できたこと自体が第一歩です。一緒に解決策を考えましょう。',
+                    '不安な気持ちは自然なことです。一つずつ整理していけば、道は開けます。',
+                    '困難な状況でも前を向いているあなたは素晴らしいです。応援しています。',
+                    '悩みを抱えながらも記録できたことが素晴らしい。少しずつ解決していきましょう。'
+                ],
+                task: [
+                    '明確な行動計画があるのは素晴らしいです！一つずつクリアしていきましょう。',
+                    '具体的なタスクを設定できましたね。実行に移すことで前進できます。',
+                    'やるべきことが明確になりました。優先順位をつけて取り組みましょう。',
+                    '行動リストができましたね。小さな一歩から始めてみてください。'
+                ]
+            };
+            
+            const categoryComments = comments[category];
+            return categoryComments[Math.floor(Math.random() * categoryComments.length)];
+        }
+        
+        // ジャーナルを保存
+        function addJournal() {
+            const input = document.getElementById('journalInput');
+            const text = input.value.trim();
+            
+            if (!text) {
+                showStatus('journalStatus', '❌ 内容を入力してください');
+                return;
+            }
+            
+            // 自動要約
+            const analysis = analyzJournal(text);
+            
+            const record = {
+                id: Date.now(),
+                text: text,
+                mood: selectedMood,
+                summary: analysis,
+                timestamp: new Date().toISOString()
+            };
+            
+            // 今日の日付のジャーナルを上書き確認
+            const today = new Date().toLocaleDateString('ja-JP');
+            const existingIndex = journals.findIndex(j => 
+                new Date(j.timestamp).toLocaleDateString('ja-JP') === today
+            );
+            
+            if (existingIndex >= 0) {
+                if (confirm('今日のジャーナルは既に存在します。上書きしますか？')) {
+                    journals[existingIndex] = record;
+                } else {
+                    return;
+                }
+            } else {
+                journals.unshift(record);
+            }
+            
+            localStorage.setItem('journals', JSON.stringify(journals));
+            
+            input.value = '';
+            document.getElementById('summarySection').classList.remove('active');
+            
+            // 気分選択をリセット
+            selectedMood = 'normal';
+            document.querySelectorAll('.mood-button').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            showStatus('journalStatus', '✓ 保存しました');
+            renderJournalLogs();
+            renderCalendar();
+        }
+        
+        // ステータス表示
+        function showStatus(elementId, message) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            setTimeout(() => {
+                statusEl.textContent = '';
+            }, 3000);
+        }
+        
+        // ログ表示：行動
+// 行動ログ表示（編集・削除ボタン付き）
+function renderActivityLogs() {
+    const container = document.getElementById('activityLogs');
+    const today = new Date().toLocaleDateString('ja-JP');
+    const todayActivities = activities.filter(a => 
+        new Date(a.timestamp).toLocaleDateString('ja-JP') === today
+    );
+    
+    if (todayActivities.length === 0) {
+        container.innerHTML = '<div class="log-item">記録がありません</div>';
+        return;
+    }
+    
+    container.innerHTML = todayActivities.map(record => `
+        <div class="log-item">
+            <div>
+                <strong>${record.text}</strong>
+                <br>
+                <small>${new Date(record.timestamp).toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}</small>
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="editActivity(${record.id})" style="padding: 5px 10px; background: #000; color: #fff; border: none; border-radius: 5px; cursor: pointer;">編集</button>
+                <button onclick="deleteActivity(${record.id})" style="padding: 5px 10px; background: #dc3545; color: #fff; border: none; border-radius: 5px; cursor: pointer;">削除</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+        // 行動編集
+        function editActivity(id) {
+            const activity = activities.find(a => a.id === id);
+            if (!activity) return;
+            
+            const newText = prompt('行動を編集してください:', activity.text);
+            if (newText && newText.trim()) {
+                activity.text = newText.trim();
+                localStorage.setItem('activities', JSON.stringify(activities));
+                renderActivityLogs();
+            }
+        }
+        
+        // 行動削除
+        function deleteActivity(id) {
+            if (confirm('この行動を削除しますか？')) {
+                activities = activities.filter(a => a.id !== id);
+                localStorage.setItem('activities', JSON.stringify(activities));
+                renderActivityLogs();
+            }
+        }
+        
+        // ログ表示：お金
+        function renderMoneyLogs() {
+            const container = document.getElementById('moneyLogs');
+            const today = new Date().toLocaleDateString('ja-JP');
+            const todayMoney = moneyRecords.filter(m => 
+                new Date(m.timestamp).toLocaleDateString('ja-JP') === today
+            );
+            
+            if (todayMoney.length === 0) {
+                container.innerHTML = '<div class="log-item">記録がありません</div>';
+                return;
+            }
+            
+            const total = todayMoney.reduce((sum, r) => sum + r.amount, 0);
+            
+            container.innerHTML = `
+                <div class="log-item" style="background: ${total >= 0 ? '#f0f8ff' : '#fff5f5'};">
+                    <strong>今日の収支: ¥${total.toLocaleString()}</strong>
+                </div>
+            ` + todayMoney.map(record => `
+                <div class="log-item">
+                    <strong>${record.text}</strong> - ¥${record.amount.toLocaleString()}
+                    <br>
+                    <small>${new Date(record.timestamp).toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'})}</small>
+                </div>
+            `).join('');
+        }
+        
+        // ログ表示：体重
+        function renderWeightLogs() {
+            const container = document.getElementById('weightLogs');
+            if (weightRecords.length === 0) {
+                container.innerHTML = '<div class="log-item">記録がありません</div>';
+                return;
+            }
+            
+            const recent = weightRecords.slice(0, 10);
+            container.innerHTML = recent.map(record => `
+                <div class="log-item">
+                    <strong>${record.weight} kg</strong>
+                    <br>
+                    <small>${new Date(record.timestamp).toLocaleString('ja-JP', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}</small>
+                </div>
+            `).join('');
+        }
+        
+        // ログ表示：ジャーナル
+        function renderJournalLogs() {
+            const container = document.getElementById('journalLogs');
+            if (journals.length === 0) {
+                container.innerHTML = '<div class="log-item">記録がありません</div>';
+                return;
+            }
+            
+            const recent = journals.slice(0, 5);
+            container.innerHTML = recent.map(record => {
+                const date = new Date(record.timestamp);
+                return `
+                    <div class="log-item">
+                        <div style="font-weight: 600; margin-bottom: 5px;">
+                            ${date.toLocaleDateString('ja-JP', {year: 'numeric', month: 'long', day: 'numeric'})}
+                        </div>
+                        <div style="white-space: pre-wrap;">${record.text.substring(0, 100)}${record.text.length > 100 ? '...' : ''}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // カレンダー表示
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            document.getElementById('calendarMonth').textContent = 
+                `${year}年 ${month + 1}月`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            
+            let html = '';
+            ['日', '月', '火', '水', '木', '金', '土'].forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div class="calendar-day empty"></div>';
+            }
+            
+            for (let date = 1; date <= lastDate; date++) {
+                const currentDate = new Date(year, month, date);
+                const dateStr = currentDate.toLocaleDateString('ja-JP');
+                
+                // その日のジャーナルを取得
+                const journal = journals.find(j => 
+                    new Date(j.timestamp).toLocaleDateString('ja-JP') === dateStr
+                );
+                const hasJournal = !!journal;
+                
+                const isToday = 
+                    today.getFullYear() === year &&
+                    today.getMonth() === month &&
+                    today.getDate() === date;
+                
+                let className = 'calendar-day';
+                if (isToday) className += ' today';
+                if (hasJournal) className += ' has-journal';
+                
+                // 気分絵文字を追加
+                let moodEmoji = '';
+                if (journal && journal.mood) {
+                    moodEmoji = `<div class="calendar-day-mood">${moodEmojis[journal.mood]}</div>`;
+                }
+                
+                html += `<div class="${className}" onclick="viewJournalByDate('${dateStr}')">${date}${moodEmoji}</div>`;
+            }
+            
+            document.getElementById('calendar').innerHTML = html;
+        }
+        
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+        
+        function viewJournalByDate(dateStr) {
+            const journal = journals.find(j => 
+                new Date(j.timestamp).toLocaleDateString('ja-JP') === dateStr
+            );
+            
+            if (journal) {
+                const moodText = journal.mood ? `\n\n気分: ${moodEmojis[journal.mood]}` : '';
+                alert(`${dateStr}のジャーナル:${moodText}\n\n${journal.text}`);
+            } else {
+                alert(`${dateStr}にはジャーナルがありません。`);
+            }
+        }
+        
+        // レポート表示
+        function renderReports() {
+            // 統計
+            document.getElementById('totalActivities').textContent = activities.length;
+            
+            const totalMoney = moneyRecords.reduce((sum, r) => sum + r.amount, 0);
+            document.getElementById('totalMoney').textContent = `¥${totalMoney.toLocaleString()}`;
+            
+            document.getElementById('totalJournals').textContent = journals.length;
+            
+            if (weightRecords.length > 0) {
+                const avgWeight = weightRecords.reduce((sum, r) => sum + r.weight, 0) / weightRecords.length;
+                document.getElementById('avgWeight').textContent = avgWeight.toFixed(1) + ' kg';
+            }
+            
+            // 行動チャート
+            renderActivityChart();
+            
+            // 気分チャート
+            renderMoodChart();
+            
+            // お金チャート
+            renderMoneyChart();
+            
+            // 体重チャート
+            renderWeightChart();
+            
+            // AIフィードバック
+            renderAIFeedback();
+        }
+        
+        function renderActivityChart() {
+            const ctx = document.getElementById('activityChart');
+            if (!ctx) return;
+            
+            const categoryCounts = {};
+            activityCategories.forEach(cat => {
+                categoryCounts[cat.name] = activities.filter(a => a.text.includes(cat.name)).length;
+            });
+            
+            if (window.activityChartInstance) {
+                window.activityChartInstance.destroy();
+            }
+            
+            window.activityChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(categoryCounts),
+                    datasets: [{
+                        label: '回数',
+                        data: Object.values(categoryCounts),
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        borderColor: 'rgba(0, 0, 0, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderMoodChart() {
+            const ctx = document.getElementById('moodChart');
+            if (!ctx) return;
+            
+            // 気分のカウント
+            const moodCounts = {
+                great: 0,
+                good: 0,
+                normal: 0,
+                bad: 0,
+                terrible: 0
+            };
+            
+            journals.forEach(j => {
+                if (j.mood && moodCounts.hasOwnProperty(j.mood)) {
+                    moodCounts[j.mood]++;
+                }
+            });
+            
+            const moodLabels = {
+                great: '😊 最高',
+                good: '🙂 良い',
+                normal: '😐 普通',
+                bad: '😔 悪い',
+                terrible: '😢 最悪'
+            };
+            
+            if (window.moodChartInstance) {
+                window.moodChartInstance.destroy();
+            }
+            
+            window.moodChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(moodCounts).map(k => moodLabels[k]),
+                    datasets: [{
+                        data: Object.values(moodCounts),
+                        backgroundColor: [
+                            'rgba(76, 175, 80, 0.8)',   // great - green
+                            'rgba(139, 195, 74, 0.8)',  // good - light green
+                            'rgba(158, 158, 158, 0.8)', // normal - grey
+                            'rgba(255, 152, 0, 0.8)',   // bad - orange
+                            'rgba(244, 67, 54, 0.8)'    // terrible - red
+                        ],
+                        borderColor: [
+                            'rgba(76, 175, 80, 1)',
+                            'rgba(139, 195, 74, 1)',
+                            'rgba(158, 158, 158, 1)',
+                            'rgba(255, 152, 0, 1)',
+                            'rgba(244, 67, 54, 1)'
+                        ],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderMoneyChart() {
+            const ctx = document.getElementById('moneyChart');
+            if (!ctx) return;
+            
+            const last7Days = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                last7Days.push(date.toLocaleDateString('ja-JP', {month: 'short', day: 'numeric'}));
+            }
+            
+            const data = last7Days.map(dateStr => {
+                const dayRecords = moneyRecords.filter(r => {
+                    const recordDate = new Date(r.timestamp).toLocaleDateString('ja-JP', {month: 'short', day: 'numeric'});
+                    return recordDate === dateStr;
+                });
+                return dayRecords.reduce((sum, r) => sum + r.amount, 0);
+            });
+            
+            if (window.moneyChartInstance) {
+                window.moneyChartInstance.destroy();
+            }
+            
+            window.moneyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: last7Days,
+                    datasets: [{
+                        label: '収支（円）',
+                        data: data,
+                        borderColor: 'rgba(0, 0, 0, 1)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderWeightChart() {
+            const ctx = document.getElementById('weightChart');
+            if (!ctx) return;
+            
+            const recent = weightRecords.slice(0, 10).reverse();
+            
+            if (window.weightChartInstance) {
+                window.weightChartInstance.destroy();
+            }
+            
+            window.weightChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: recent.map(r => new Date(r.timestamp).toLocaleDateString('ja-JP', {month: 'short', day: 'numeric'})),
+                    datasets: [{
+                        label: '体重（kg）',
+                        data: recent.map(r => r.weight),
+                        borderColor: 'rgba(0, 0, 0, 1)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        
+        // AIフィードバック生成
+        function renderAIFeedback() {
+            const today = new Date();
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            
+            const recentActivities = activities.filter(a => new Date(a.timestamp) >= sevenDaysAgo);
+            const recentJournals = journals.filter(j => new Date(j.timestamp) >= sevenDaysAgo);
+            const recentMoney = moneyRecords.filter(m => new Date(m.timestamp) >= sevenDaysAgo);
+            
+            const recordedDates = new Set();
+            [...recentActivities, ...recentJournals, ...recentMoney].forEach(record => {
+                const date = new Date(record.timestamp).toLocaleDateString('ja-JP');
+                recordedDates.add(date);
+            });
+            
+            const recordedDays = recordedDates.size;
+            
+            const categoryCounts = {};
+            activityCategories.forEach(cat => {
+                categoryCounts[cat.name] = recentActivities.filter(a => 
+                    a.text.includes(cat.name)
+                ).length;
+            });
+            
+            const topCategories = Object.entries(categoryCounts)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .filter(([, count]) => count > 0);
+            
+            const moodCounts = {
+                great: 0, good: 0, normal: 0, bad: 0, terrible: 0
+            };
+            
+            recentJournals.forEach(j => {
+                if (j.mood && moodCounts.hasOwnProperty(j.mood)) {
+                    moodCounts[j.mood]++;
+                }
+            });
+            
+            const totalMoods = Object.values(moodCounts).reduce((sum, count) => sum + count, 0);
+            const positiveMoods = moodCounts.great + moodCounts.good;
+            const negativeMoods = moodCounts.bad + moodCounts.terrible;
+            
+            const totalIncome = recentMoney.filter(m => m.amount > 0).reduce((sum, m) => sum + m.amount, 0);
+            const totalExpense = recentMoney.filter(m => m.amount < 0).reduce((sum, m) => sum + m.amount, 0);
+            const balance = totalIncome + totalExpense;
+            
+            let advice = [];
+            
+            if (recordedDays >= 5) {
+                advice.push('📊 素晴らしい！今週は' + recordedDays + '日間記録を続けています。継続は力なりですね！');
+            } else if (recordedDays >= 3) {
+                advice.push('📊 今週は' + recordedDays + '日間記録しました。あと少しで毎日記録達成です！');
+            } else {
+                advice.push('📊 今週の記録は' + recordedDays + '日間です。毎日少しずつ記録してみましょう！');
+            }
+            
+            if (topCategories.length > 0) {
+                const topActivity = topCategories[0];
+                advice.push('🎯 今週は「' + topActivity[0] + '」を' + topActivity[1] + '回記録しました。素晴らしい！');
+            }
+            
+            if (totalMoods > 0) {
+                const positiveRate = Math.round((positiveMoods / totalMoods) * 100);
+                if (positiveRate >= 70) {
+                    advice.push('😊 今週の気分は素晴らしい！' + positiveRate + '%がポジティブな気分でした。');
+                } else if (positiveRate >= 50) {
+                    advice.push('🙂 今週の気分はまずまず。' + positiveRate + '%がポジティブな気分でした。');
+                } else if (negativeMoods > positiveMoods) {
+                    advice.push('😔 今週は少し大変でしたね。無理せず、自分のペースで進みましょう。');
+                }
+            }
+            
+            if (recentMoney.length > 0) {
+                if (balance >= 0) {
+                    advice.push('💰 今週の収支は+' + balance.toLocaleString() + '円。素晴らしい管理ですね！');
+                } else {
+                    advice.push('💸 今週の支出は' + Math.abs(balance).toLocaleString() + '円。来週は節約を心がけてみましょう。');
+                }
+            }
+            
+            let goals = [];
+            
+            if (recordedDays < 7) {
+                goals.push('📅 来週は毎日記録を目指してみましょう');
+            }
+            
+            if (topCategories.length > 0) {
+                const topActivity = topCategories[0];
+                goals.push('🎯 「' + topActivity[0] + '」を' + (topActivity[1] + 2) + '回やってみる');
+            }
+            
+            if (recentActivities.filter(a => a.text.includes('運動')).length < 3) {
+                goals.push('🏃 週3回以上の運動にチャレンジ');
+            }
+            
+            if (recentJournals.length < 5) {
+                goals.push('📝 週5回のジャーナル記録を目指す');
+            }
+            
+            if (balance < 0) {
+                goals.push('💰 支出を意識して記録を続ける');
+            }
+            
+            const weeklyAnalysisHTML = `
+                <p><strong>📊 記録日数:</strong> ${recordedDays}日 / 7日</p>
+                ${recordedDays >= 5 ? '<p style="color: #28a745;">✨ 素晴らしい継続力です！</p>' : ''}
+                ${recentActivities.length > 0 ? `<p><strong>📝 行動記録:</strong> ${recentActivities.length}回</p>` : ''}
+                ${recentJournals.length > 0 ? `<p><strong>✍️ ジャーナル:</strong> ${recentJournals.length}回</p>` : ''}
+            `;
+            
+            const behaviorPatternsHTML = topCategories.length > 0 ? `
+                <p><strong>トップ3活動:</strong></p>
+                <ul>
+                    ${topCategories.map(([name, count]) => `<li>${name}: ${count}回</li>`).join('')}
+                </ul>
+            ` : '<p>まだデータが少ないため、パターンを分析できません。</p>';
+            
+            const moodTrendsHTML = totalMoods > 0 ? `
+                <p><strong>気分の内訳:</strong></p>
+                <ul>
+                    ${moodCounts.great > 0 ? `<li>😊 最高: ${moodCounts.great}回</li>` : ''}
+                    ${moodCounts.good > 0 ? `<li>🙂 良い: ${moodCounts.good}回</li>` : ''}
+                    ${moodCounts.normal > 0 ? `<li>😐 普通: ${moodCounts.normal}回</li>` : ''}
+                    ${moodCounts.bad > 0 ? `<li>😔 悪い: ${moodCounts.bad}回</li>` : ''}
+                    ${moodCounts.terrible > 0 ? `<li>😢 最悪: ${moodCounts.terrible}回</li>` : ''}
+                </ul>
+            ` : '<p>まだジャーナルの記録がありません。気分を記録してみましょう！</p>';
+            
+            const aiAdviceHTML = advice.length > 0 ? 
+                advice.map(a => `<p>・${a}</p>`).join('') : 
+                '<p>データを記録して、AIからのアドバイスを受け取りましょう！</p>';
+            
+            const weeklyGoalsHTML = goals.length > 0 ? `
+                <ul>
+                    ${goals.map(g => `<li>${g}</li>`).join('')}
+                </ul>
+            ` : '<p>素晴らしい！すべての目標を達成しています！</p>';
+            
+            document.getElementById('weeklyAnalysis').innerHTML = weeklyAnalysisHTML;
+            document.getElementById('behaviorPatterns').innerHTML = behaviorPatternsHTML;
+            document.getElementById('moodTrends').innerHTML = moodTrendsHTML;
+            document.getElementById('aiAdvice').innerHTML = aiAdviceHTML;
+            document.getElementById('weeklyGoals').innerHTML = weeklyGoalsHTML;
+        }
+        // カテゴリ管理
+        function openCategoryManager() {
+            document.getElementById('categoryModal').classList.add('active');
+            renderCategoryList();
+        }
+        
+        function closeCategoryManager() {
+            document.getElementById('categoryModal').classList.remove('active');
+        }
+        
+        function renderCategoryList() {
+            const container = document.getElementById('categoryList');
+            container.innerHTML = activityCategories.map((cat, index) => `
+                <div class="log-item" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>${cat.emoji} ${cat.name}</span>
+                    <button onclick="deleteCategory(${index})" style="padding: 5px 10px; background: #ff4444; color: white; border: none; border-radius: 5px; cursor: pointer;">削除</button>
+                </div>
+            `).join('');
+        }
+        
+        function addCategory() {
+            const nameInput = document.getElementById('newCategoryName');
+            const emojiInput = document.getElementById('newCategoryEmoji');
+            
+            const name = nameInput.value.trim();
+            const emoji = emojiInput.value.trim();
+            
+            if (!name || !emoji) {
+                alert('名前と絵文字を入力してください');
+                return;
+            }
+            
+            activityCategories.push({ name, emoji });
+            localStorage.setItem('activityCategories', JSON.stringify(activityCategories));
+            
+            nameInput.value = '';
+            emojiInput.value = '';
+            
+            renderCategoryList();
+            renderActivityQuickButtons();
+        }
+        
+        function deleteCategory(index) {
+            if (confirm('このカテゴリを削除しますか？')) {
+                activityCategories.splice(index, 1);
+                localStorage.setItem('activityCategories', JSON.stringify(activityCategories));
+                renderCategoryList();
+                renderActivityQuickButtons();
+            }
+        }
+        
+        // 音声認識セットアップ
+        function setupVoiceRecognition(buttonId, inputId, isJournal = false, isActivity = false) {
+            const button = document.getElementById(buttonId);
+            const input = document.getElementById(inputId);
+            
+            if (!button || !input) return;
+            
+            if (!('webkitSpeechRecognition' in window)) {
+                button.disabled = true;
+                button.textContent = '音声認識は非対応です';
+                return;
+            }
+            
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'ja-JP';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            
+            let isListening = false;
+            let finalTranscript = '';
+            
+            button.addEventListener('click', () => {
+                if (isListening) {
+                    recognition.stop();
+                    button.classList.remove('listening');
+                    button.textContent = button.textContent.replace('🔴 停止', '🎤 音声入力');
+                    isListening = false;
+                } else {
+                    finalTranscript = '';
+                    recognition.start();
+                    button.classList.add('listening');
+                    button.textContent = button.textContent.replace('🎤 音声入力', '🔴 停止');
+                    isListening = true;
+                }
+            });
+            
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                const fullText = finalTranscript + interimTranscript;
+                input.value = fullText;
+                
+                // 行動タブの場合は自動的にカテゴリを検出して選択
+                if (isActivity && fullText) {
+                    autoSelectActivityCategory(fullText);
+                }
+                
+                // ジャーナルの場合は自動要約を表示
+                if (isJournal && finalTranscript) {
+                    const analysis = analyzJournal(fullText);
+                    displaySummary(analysis);
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('音声認識エラー:', event.error);
+                button.classList.remove('listening');
+                button.textContent = button.textContent.replace('🔴 停止', '🎤 音声入力');
+                isListening = false;
+            };
+            
+            recognition.onend = () => {
+                button.classList.remove('listening');
+                button.textContent = button.textContent.replace('🔴 停止', '🎤 音声入力');
+                isListening = false;
+            };
+        }
+        
+        // 音声入力で自動的にカテゴリを選択
+        function autoSelectActivityCategory(text) {
+            // テキストを小文字化
+            const lowerText = text.toLowerCase();
+            
+            // 各カテゴリのマッチングスコアを計算
+            let bestMatch = null;
+            let bestScore = 0;
+            
+            activityCategories.forEach(category => {
+                const categoryName = category.name.toLowerCase();
+                let score = 0;
+                
+                // カテゴリ名が直接含まれているか
+                if (lowerText.includes(categoryName)) {
+                    score += 10;
+                }
+                
+                // 関連キーワードをチェック
+                const keywords = getCategoryKeywords(category.name);
+                keywords.forEach(keyword => {
+                    if (lowerText.includes(keyword)) {
+                        score += 5;
+                    }
+                });
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = category.name;
+                }
+            });
+            
+            // マッチしたカテゴリがあれば、そのボタンをハイライト
+            if (bestMatch && bestScore >= 5) {
+                highlightQuickButton(bestMatch);
+            }
+        }
+        
+        // カテゴリに関連するキーワードを取得
+        function getCategoryKeywords(categoryName) {
+            const keywordMap = {
+                '仕事': ['会議', 'ミーティング', 'プレゼン', '資料', 'プロジェクト', '業務', 'オフィス', '企画', '報告', 'メール'],
+                '勉強': ['学習', '勉強', '読書', '本', 'コース', '講座', 'セミナー', '試験', '研究', '復習'],
+                '運動': ['ジム', 'ランニング', 'ジョギング', '筋トレ', 'ヨガ', 'スポーツ', '散歩', 'トレーニング', 'ストレッチ'],
+                '食事': ['朝食', '昨食', '夕食', '食べ', 'ランチ', 'ディナー', '料理', '食事', 'レストラン', 'カフェ'],
+                '睡眠': ['眠', '寝', '仕事', '起', '休息', '昨寝', '朝', '疲れ'],
+                '読書': ['本', '小説', '漫画', '読ん', '雑誌', '記事', 'ブック'],
+                '家事': ['掃除', '洗濯', '料理', '片付け', '買い物', 'クリーニング', '整理'],
+                '趣味': ['趣味', 'ゲーム', '音楽', '映画', 'ドラマ', 'アニメ', '絵', '写真', 'カラオケ']
+            };
+            
+            return keywordMap[categoryName] || [];
+        }
+        
+        // クイックボタンをハイライト
+        function highlightQuickButton(categoryName) {
+            // 全ボタンのハイライトを解除
+            document.querySelectorAll('#activityQuickButtons .quick-button').forEach(btn => {
+                btn.style.borderColor = '#333';
+                btn.style.borderWidth = '1px';
+                btn.style.background = '#fff';
+            });
+            
+            // マッチしたボタンをハイライト
+            const buttons = document.querySelectorAll('#activityQuickButtons .quick-button');
+            buttons.forEach(btn => {
+                if (btn.textContent.includes(categoryName)) {
+                    btn.style.borderColor = '#000';
+                    btn.style.borderWidth = '3px';
+                    btn.style.background = '#f0f8ff';
+                }
+            });
+        }
+        
+        // 要約を表示
+        function displaySummary(analysis) {
+            const summarySection = document.getElementById('summarySection');
+            summarySection.classList.add('active');
+            
+            // Good
+            const goodEl = document.getElementById('summaryGood');
+            const goodCommentEl = document.getElementById('commentGood');
+            if (analysis.good.length > 0) {
+                goodEl.textContent = analysis.good.map(s => '・' + s).join('\n');
+                goodCommentEl.textContent = generateAIComment('good', analysis.good);
+            } else {
+                goodEl.textContent = '（なし）';
+                goodCommentEl.textContent = '';
+            }
+            
+            // More
+            const moreEl = document.getElementById('summaryMore');
+            const moreCommentEl = document.getElementById('commentMore');
+            if (analysis.more.length > 0) {
+                moreEl.textContent = analysis.more.map(s => '・' + s).join('\n');
+                moreCommentEl.textContent = generateAIComment('more', analysis.more);
+            } else {
+                moreEl.textContent = '（なし）';
+                moreCommentEl.textContent = '';
+            }
+            
+            // Worry
+            const worryEl = document.getElementById('summaryWorry');
+            const worryCommentEl = document.getElementById('commentWorry');
+            if (analysis.worry.length > 0) {
+                worryEl.textContent = analysis.worry.map(s => '・' + s).join('\n');
+                worryCommentEl.textContent = generateAIComment('worry', analysis.worry);
+            } else {
+                worryEl.textContent = '（なし）';
+                worryCommentEl.textContent = '';
+            }
+            
+            // Task
+            const taskEl = document.getElementById('summaryTask');
+            const taskCommentEl = document.getElementById('commentTask');
+            if (analysis.task.length > 0) {
+                taskEl.textContent = analysis.task.map(s => '・' + s).join('\n');
+                taskCommentEl.textContent = generateAIComment('task', analysis.task);
+            } else {
+                taskEl.textContent = '（なし）';
+                taskCommentEl.textContent = '';
+            }
+        }
+        
+        // 初期化
+        renderActivityQuickButtons();
+        renderActivityLogs();
+        renderMoneyLogs();
+        renderWeightLogs();
+        renderJournalLogs();
+        renderCalendar();
+        
+        // デフォルトの気分を選択状態に
+        selectMood('normal');
+        
+        setupVoiceRecognition('activityVoiceButton', 'activityInput', false, true);
+        setupVoiceRecognition('moneyVoiceButton', 'moneyInput');
+        setupVoiceRecognition('weightVoiceButton', 'weightInput');
+        setupVoiceRecognition('journalVoiceButton', 'journalInput', true, false);
+    </script>
+</body>
+</html>
