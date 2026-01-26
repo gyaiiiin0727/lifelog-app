@@ -6,9 +6,10 @@
     <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>ライフログアプリ v31.5 - 音声重複修正版</title>
+    <title>ライフログアプリ v31.4.1 - 音声重複修正版</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* 元のデザイン・CSSをそのまま保持 */
         * {
             margin: 0;
             padding: 0;
@@ -238,41 +239,32 @@
         .log-item:hover {
             border-color: #000;
         }
-
-        .category-selector {
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border: 2px solid #e9ecef;
-        }
-
-        .category-buttons {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .category-btn {
-            padding: 12px;
-            border: 2px solid #dee2e6;
-            background: white;
+        
+        /* カテゴリ管理ボタン */
+        .manage-button {
+            padding: 8px 15px;
+            background: #fff;
+            color: #000;
+            border: 1px solid #000;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
+            font-size: 0.9em;
+        }
+        
+        .manage-button:hover {
+            background: #000;
+            color: #fff;
+        }
+        
+        /* ジャーナルカテゴリ */
+        .category-selector,
+        .category-required-hint,
+        .selected-category-display {
+            display: block !important;
         }
 
-        .category-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: #667eea;
+        .journal-tab:not(.active) {
+            display: none !important;
         }
 
         .mood-selector {
@@ -281,6 +273,14 @@
             background: #f9f9f9;
             border-radius: 12px;
             border: 1px solid #e0e0e0;
+        }
+        
+        .mood-selector-title {
+            font-size: 1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #000;
         }
         
         .mood-buttons {
@@ -296,10 +296,16 @@
             border: 2px solid #ddd;
             border-radius: 12px;
             cursor: pointer;
+            transition: all 0.3s;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 5px;
+        }
+        
+        .mood-button:hover {
+            border-color: #666;
+            transform: translateY(-2px);
         }
         
         .mood-button.selected {
@@ -307,310 +313,43 @@
             background: #f0f8ff;
             border-width: 3px;
         }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 5px;
+        
+        .mood-emoji {
+            font-size: 2em;
         }
-
-        .calendar-day {
-            aspect-ratio: 1;
+        
+        .mood-label {
+            font-size: 0.8em;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .mood-button.selected .mood-label {
+            color: #000;
+            font-weight: 600;
+        }
+        
+        /* モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
+        }
+        
+        .modal-content {
             background: #fff;
-        }
-
-        .calendar-day.today {
-            background: #000;
-            color: #fff;
-        }
-
-        .summary-section {
-            display: none;
-            margin-top: 20px;
-            padding: 20px;
-            background: #f9f9f9;
             border-radius: 12px;
-        }
-
-        .summary-section.active {
-            display: block;
-        }
-
-        .ai-comment {
-            margin-top: 10px;
-            padding: 12px;
-            background: #f0f8ff;
-            border-left: 4px solid #000;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>📊 ライフログ v31.5</h1>
-        
-        <div class="tab-nav">
-            <button class="tab-button active" onclick="switchTab('activity')">⏱️ 行動</button>
-            <button class="tab-button" onclick="switchTab('money')">💰 お金</button>
-            <button class="tab-button" onclick="switchTab('journal')">📔 ジャーナル</button>
-            <button class="tab-button" onclick="switchTab('reportActivity')">📊 レポート</button>
-            <button class="tab-button" onclick="switchTab('goals')">🎯 目標</button>
-        </div>
-        
-        <div id="activity" class="tab-content active">
-            <button id="activityVoiceButton" class="voice-button">🎤 音声入力で記録</button>
-            <div id="activityQuickButtons" class="quick-buttons"></div>
-            <input type="text" id="activityInput" class="text-input" placeholder="活動内容を入力...">
-            <button class="add-button" onclick="addActivity()">➕ 記録</button>
-            <div id="activityLogs"></div>
-        </div>
-
-        <div id="money" class="tab-content">
-            <input type="text" id="moneyInput" class="text-input" placeholder="メモ（例：ランチ代）">
-            <input type="number" id="moneyAmount" class="text-input" placeholder="金額（円）">
-            <button class="add-button" onclick="addMoney()">💰 記録</button>
-            <div id="moneyLogs"></div>
-        </div>
-
-        <div id="journal" class="tab-content">
-            <div class="category-selector">
-                <div class="category-buttons">
-                    <button class="category-btn" onclick="selectJournalCategory('good')" data-category="good">😊 良かった</button>
-                    <button class="category-btn" onclick="selectJournalCategory('more')" data-category="more">📈 もっと</button>
-                    <button class="category-btn" onclick="selectJournalCategory('worry')" data-category="worry">😟 悩み</button>
-                    <button class="category-btn" onclick="selectJournalCategory('task')" data-category="task">✅ タスク</button>
-                </div>
-            </div>
-
-            <button id="journalVoiceButton" class="voice-button" onclick="startJournalVoice()">🎤 音声入力</button>
-            
-            <div class="mood-selector">
-                <div class="mood-buttons">
-                    <button class="mood-button" onclick="selectMood('great')"><span>😊</span>最高</button>
-                    <button class="mood-button" onclick="selectMood('good')"><span>🙂</span>良い</button>
-                    <button class="mood-button" onclick="selectMood('normal')"><span>😐</span>普通</button>
-                    <button class="mood-button" onclick="selectMood('bad')"><span>😔</span>悪い</button>
-                </div>
-            </div>
-
-            <textarea id="journalInput" class="text-input" placeholder="今日の振り返り..."></textarea>
-            
-            <div id="summarySection" class="summary-section">
-                <h3>📝 要約</h3>
-                <div id="summaryGood" class="ai-comment"></div>
-                <div id="summaryMore" class="ai-comment"></div>
-                <div id="summaryWorry" class="ai-comment"></div>
-            </div>
-
-            <button class="add-button" onclick="addJournal()">📝 保存</button>
-            <div id="journalLogs"></div>
-        </div>
-
-        <div id="reportActivity" class="tab-content">
-            <div class="calendar-grid" id="calendar"></div>
-        </div>
-
-        <div id="goals" class="tab-content">
-            <input type="text" id="goalInput" class="text-input" placeholder="新しい目標...">
-            <button class="add-button" onclick="addGoal()">➕ 目標追加</button>
-            <div id="goalsList"></div>
-        </div>
-    </div>
-
-    <script>
-        // データストレージ
-        let activities = JSON.parse(localStorage.getItem('activities') || '[]');
-        let moneyRecords = JSON.parse(localStorage.getItem('moneyRecords') || '[]');
-        let journals = JSON.parse(localStorage.getItem('journals') || '[]');
-        let goals = JSON.parse(localStorage.getItem('goals') || '[]');
-
-        let selectedMood = 'normal';
-        let selectedJournalCategory = null;
-        let isJournalRecording = false;
-        let journalRecognition = null;
-
-        // --- タブ切り替え ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(tabName).classList.add('active');
-            const btn = document.querySelector(`.tab-button[onclick*="${tabName}"]`);
-            if (btn) btn.classList.add('active');
-            if (tabName === 'reportActivity') renderCalendar();
-        }
-
-        // --- 音声入力 重複修正版 (核心部分) ---
-        function startJournalVoice() {
-            if (!('webkitSpeechRecognition' in window)) {
-                alert('このブラウザは音声認識に対応していません');
-                return;
-            }
-
-            const button = document.getElementById('journalVoiceButton');
-            const input = document.getElementById('journalInput');
-
-            if (isJournalRecording) {
-                if (journalRecognition) journalRecognition.stop();
-                return;
-            }
-
-            journalRecognition = new webkitSpeechRecognition();
-            journalRecognition.lang = 'ja-JP';
-            journalRecognition.continuous = true;
-            journalRecognition.interimResults = true;
-
-            // 録音開始時の既存テキストを保持
-            let baseText = input.value.trim();
-            if (baseText) baseText += '\n';
-
-            // 今回のセッションで確定した文字列
-            let sessionFinalText = '';
-
-            journalRecognition.onstart = function() {
-                isJournalRecording = true;
-                button.textContent = '⏹️ 停止';
-                button.classList.add('listening');
-            };
-
-            journalRecognition.onresult = function(event) {
-                let interimTranscript = '';
-                
-                // 新しく認識された部分（resultIndex）からループを開始
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        sessionFinalText += transcript;
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-
-                // 表示の更新：既存分 + 確定分 + 中間分
-                input.value = baseText + sessionFinalText + interimTranscript;
-            };
-
-            journalRecognition.onend = function() {
-                isJournalRecording = false;
-                button.textContent = '🎤 音声入力';
-                button.classList.remove('listening');
-                // 終了時に解析を実行
-                const analysis = analyzJournal(input.value);
-                displaySummary(analysis);
-            };
-
-            journalRecognition.onerror = function() {
-                isJournalRecording = false;
-                button.textContent = '🎤 音声入力';
-                button.classList.remove('listening');
-            };
-
-            journalRecognition.start();
-        }
-
-        // --- 簡易分析ロジック ---
-        function analyzJournal(text) {
-            return {
-                good: text.includes('良かった') || text.includes('😊') ? 'ポジティブな出来事がありました' : '',
-                more: text.includes('もっと') || text.includes('📈') ? '向上の兆しが見えます' : '',
-                worry: text.includes('悩み') || text.includes('😟') ? '少し休息が必要かもしれません' : ''
-            };
-        }
-
-        function displaySummary(analysis) {
-            const section = document.getElementById('summarySection');
-            section.classList.add('active');
-            document.getElementById('summaryGood').textContent = analysis.good || '特になし';
-            document.getElementById('summaryMore').textContent = analysis.more || '特になし';
-            document.getElementById('summaryWorry').textContent = analysis.worry || '特になし';
-        }
-
-        // --- その他の基本機能 ---
-        function addActivity() {
-            const text = document.getElementById('activityInput').value;
-            if (!text) return;
-            activities.unshift({ text, time: new Date().toISOString() });
-            localStorage.setItem('activities', JSON.stringify(activities));
-            document.getElementById('activityInput').value = '';
-            renderActivities();
-        }
-
-        function renderActivities() {
-            const container = document.getElementById('activityLogs');
-            container.innerHTML = activities.slice(0, 5).map(a => `<div class="log-item">${a.text} <small>${new Date(a.time).toLocaleTimeString()}</small></div>`).join('');
-        }
-
-        function addMoney() {
-            const text = document.getElementById('moneyInput').value;
-            const amount = document.getElementById('moneyAmount').value;
-            if (!text || !amount) return;
-            moneyRecords.unshift({ text, amount, time: new Date().toISOString() });
-            localStorage.setItem('moneyRecords', JSON.stringify(moneyRecords));
-            renderMoney();
-        }
-
-        function renderMoney() {
-            const container = document.getElementById('moneyLogs');
-            container.innerHTML = moneyRecords.slice(0, 5).map(m => `<div class="log-item">${m.text}: ¥${m.amount}</div>`).join('');
-        }
-
-        function selectMood(mood) {
-            selectedMood = mood;
-            document.querySelectorAll('.mood-button').forEach(btn => btn.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
-        }
-
-        function selectJournalCategory(cat) {
-            selectedJournalCategory = cat;
-            document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
-        }
-
-        function addJournal() {
-            const text = document.getElementById('journalInput').value;
-            if (!text) return;
-            journals.push({ text, mood: selectedMood, date: new Date().toISOString() });
-            localStorage.setItem('journals', JSON.stringify(journals));
-            alert('保存しました');
-            document.getElementById('journalInput').value = '';
-        }
-
-        function renderCalendar() {
-            const container = document.getElementById('calendar');
-            const today = new Date();
-            let html = '';
-            for (let i = 1; i <= 31; i++) {
-                const hasRecord = journals.some(j => new Date(j.date).getDate() === i);
-                html += `<div class="calendar-day ${i === today.getDate() ? 'today' : ''} ${hasRecord ? 'has-record' : ''}">${i}</div>`;
-            }
-            container.innerHTML = html;
-        }
-
-        function addGoal() {
-            const text = document.getElementById('goalInput').value;
-            if (!text) return;
-            goals.push({ text, done: false });
-            localStorage.setItem('goals', JSON.stringify(goals));
-            renderGoals();
-        }
-
-        function renderGoals() {
-            const container = document.getElementById('goalsList');
-            container.innerHTML = goals.map(g => `<div class="log-item">${g.text}</div>`).join('');
-        }
-
-        // 初期実行
-        renderActivities();
-        renderMoney();
-        renderGoals();
-    </script>
-</body>
-</html>
+            padding: 30px;
+            max-width:
